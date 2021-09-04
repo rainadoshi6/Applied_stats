@@ -59,11 +59,9 @@ What are the variable types? Any missing values we should worry about?
 
 No missing values.
 
-+---------------+-----------+---------------+-----------------+---------------+------------------------------+
 | Column name   | country   | beer_servings | spirit_servings | wine_servings | total_litres_of_pure_alcohol |
-+===============+===========+===============+=================+===============+==============================+
+|---------------|-----------|---------------|-----------------|---------------|------------------------------|
 | Variable type | character | integer       | integer         | integer       | double                       |
-+---------------+-----------+---------------+-----------------+---------------+------------------------------+
 
 ```{r glimpse_skim_data}
 
