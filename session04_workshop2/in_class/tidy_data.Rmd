@@ -1,6 +1,6 @@
 ---
 title: "Tidy Data, long to wide and back!"
-author: "Your name goes here"
+author: "Yuan Gao"
 date: "`r Sys.Date()`"
 output:
   html_document:

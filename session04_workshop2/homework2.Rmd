@@ -1,6 +1,6 @@
 ---
 title: "Session 4: Homework 2"
-author: "Study group and members' names go here"
+author: "Alex Kubbinga, Clara Moreno Sanchezu, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -66,7 +66,7 @@ weather <-
 Notice that, when using this function, we added two options: `skip` and `na`.
 
 1. The `skip=1` option is there as the real data table only starts in Row 2, so we need to skip one row. 
-1. `na = "***"` option informs R how missing observations in the spreadsheet are coded. When looking at the spreadsheet, you can see that missing data is coded as "***". It is best to specify this here, as otherwise some of the data is not recognized as numeric data.
+2. `na = "***"` option informs R how missing observations in the spreadsheet are coded. When looking at the spreadsheet, you can see that missing data is coded as "***". It is best to specify this here, as otherwise some of the data is not recognized as numeric data.
 
 Once the data is loaded, notice that there is a object titled `weather` in the `Environment` panel. If you cannot see the panel (usually on the top-right), go to `Tools` > `Global Options` > `Pane Layout` and tick the checkbox next to `Environment`. Click on the `weather` object, and the dataframe will pop up on a seperate tab. Inspect the dataframe.
 
@@ -76,11 +76,21 @@ You have two objectives in this section:
 
 1. Select the year and the twelve month variables from the `weather` dataset. We do not need the others (J-D, D-N, DJF, etc.) for this assignment. Hint: use `select()` function.
 
+```{r}
+weather <- weather %>% 
+  select(1:13)
+```
+
+
 1. Convert the dataframe from wide to 'long' format. Hint: use `gather()` or `pivot_longer()` function. Name the new dataframe as `tidyweather`, name the variable containing the name of the month as `month`, and the temperature deviation values as `delta`.
 
 
 ```{r tidyweather}
-
+tidyweather <- weather %>% 
+  pivot_longer(
+    cols = 2:13,
+    names_to = "month",
+    values_to = "delta")
 ```
 
 Inspect your dataframe. It should have three variables now, one each for 
@@ -93,14 +103,30 @@ Inspect your dataframe. It should have three variables now, one each for
 
 Let us plot the data using a time-series scatter plot, and add a trendline. To do that, we first need to create a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
 
+```{r}
+# add date column
+tidyweather <- tidyweather %>% 
+  mutate(date = ym(paste(Year,"-",month)))
+
+# time series plot 
+tidyweather %>% 
+  ggplot(aes(x=date,y=delta)) +
+  geom_point()+
+  geom_smooth(se=F)+
+  labs(
+    title = "Time series scatter plot"
+  )+
+  NULL
+```
+
 
 > In the following chunk of code, I used the `eval=FALSE` argument, which does not run a chunk of code; I did so that you can knit the document before tidying the data and creating a new dataframe `tidyweather`. When you actually want to run this code and knit your document, you must delete `eval=FALSE`, **not just here but in all chunks were `eval=FALSE` appears.**
 
 
-```{r scatter_plot, eval=FALSE}
+```{r scatter_plot eval=FALSE}
 
 tidyweather <- tidyweather %>%
-  mutate(date = ymd(paste(as.character(Year), Month, "1")),
+  mutate(date = ymd(paste(as.character(Year), month, "1")),
          month = month(date, label=TRUE),
          year = year(date))
 
@@ -118,7 +144,8 @@ Is the effect of increasing temperature more pronounced in some months? Use `fac
 
 ```{r facet_wrap, echo=FALSE}
 
-#Your code goes here...
+tidyweather %>%
+  ggplot()
 
 ```
 
@@ -200,14 +227,19 @@ Your task is to construct a confidence interval for the average annual delta sin
 ```{r, calculate_CI_using_formula, eval=FALSE}
 
 formula_ci <- comparison %>% 
-
   # choose the interval 2011-present
   # what dplyr verb will you use? 
-
+  filter(interval == "2011-present") %>%
   # calculate summary statistics for temperature deviation (delta) 
   # calculate mean, SD, count, SE, lower/upper 95% CI
   # what dplyr verb will you use? 
-
+  summarise(ann_aver_delta = mean(delta,na.rm=T),
+            sd_delta = sd(delta,na.rm=T),
+            count=n(),
+            t_critical = qt(0.975,count-1),
+            margin_of_error = t_critical*sd_delta/sqrt(count),
+            delta_low = ann_aver_delta-margin_of_error),
+            delta_high = ann_aver_delta+margin_of_error))
 #print out formula_CI
 formula_ci
 ```
@@ -216,7 +248,19 @@ formula_ci
 ```{r, calculate_CI_using_bootstrap}
 
 # use the infer package to construct a 95% CI for delta
-
+comparison %>% 
+  # choose the interval 2011-present
+  # what dplyr verb will you use? 
+  filter(interval == "2011-present") %>%
+  # Specify the variable of interest
+  specify(response = delta) %>%
+  
+  # Generate a bunch of bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  
+  # Find the median of each sample
+  calculate(stat = "mean")%>%
+infer::get_confidence_interval(level = 0.95, type = "percentile")
 ```
 
 > What is the data showing us? Please type your answer after (and outside!) this blockquote. You have to explain what you have done, and the interpretation of the result. One paragraph max, please!
@@ -251,6 +295,21 @@ Can we estimate the *population* proportion of Snapchat or Instagram users in 20
 1. Create a  new variable, `snap_insta` that is *Yes* if the respondent reported using any of Snapchat (`snapchat`) or Instagram (`instagrm`), and *No* if not. If the recorded value was NA for both of these questions, the value in your new variable should also be NA.
 1. Calculate the proportion of Yes’s for `snap_insta` among those who answered the question, i.e. excluding NAs.
 1. Using the CI formula for proportions, please construct 95% CIs for men and women who used either Snapchat or Instagram
+```{r}
+gss %>%
+  filter(snapchat != "NA") %>%
+  mutate(snapchat = factor(snapchat,levels = c("Yes","No"))) %>%
+  # Specify the variable of interest
+  specify(response = snapchat) %>%
+  
+  # Generate a bunch of bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  
+  # Find the median of each sample
+  calculate(stat = "mean") %>% 
+  get_confidence_interval(level = 0.95, type="percentile")
+  
+```
 
 ## Twitter, by education level
 
@@ -259,6 +318,21 @@ Can we estimate the *population* proportion of Twitter users by education level 
 There are 5 education levels in variable `degree` which, in ascneding order of years of education, are Lt high school, High School, Junior college, Bachelor, Graduate. 
 
 1. Turn `degree` from a character variable into a factor variable. Make sure the order is the correct one and that levels are not sorted alphabetically which is what R by default does. 
+```{r}
+gss <- gss %>%
+  mutate(degree = factor(degree, levels=c("Lt high school","High school", "Junior college", "Bachelor", "Graduate")),
+         bachelor_or_graduate = case_when(
+           degree == "Bachelor" | degree == "Graduate" ~ "Yes",
+           degree == "Bachelor" & degree == "Graduate" ~ "No",
+           T ~ "NA")
+         )
+# gss %>%
+#   filter(bachelor_or_graduate!="NA") %>%
+#   prop_test(bachelor_or_graduate~NULL)
+
+```
+
+
 1. Create a  new variable, `bachelor_graduate` that is *Yes* if the respondent has either a `Bachelor` or `Graduate` degree. As before, if the recorded value for either was NA, the value in your new variable should also be NA.
 1. Calculate the proportion of `bachelor_graduate` who do (Yes) and who don't (No) use twitter. 
 1. Using the CI formula for proportions, please construct two 95% CIs for `bachelor_graduate` vs whether they use (Yes) and don't (No) use twitter. 
