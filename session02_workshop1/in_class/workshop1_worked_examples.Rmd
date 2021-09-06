@@ -46,6 +46,7 @@ library(ggthemes) # theme_economist, theme_fivethirtyeight, etc
 library(knitr) 
 library(kableExtra) # for nicer table formatting
 library(zoo) # to calculate 7-day moving averages
+library(gapminder)
 
 
 # Some fancy formatting, ggplot themes with opinionated defaults and an emphasis on typography
@@ -153,7 +154,7 @@ Some geoms use a `fill` aesthetic, which is similar to `colour` but applies to s
 
 
 ```{r ggplot_geom_boxplot2}
-ggplot(bike_weather, aes(x = month, y = temp, fill=month)) +
+ggplot(bike_weather, aes(x = month, y = temp, colour=month)) +
   geom_boxplot()
 ```
 
@@ -237,7 +238,7 @@ We can do this with the `fct_reorder()` function, which takes two arguments: The
 movies %>% 
   slice_max(order_by = gross, n=20) %>% 
   ggplot(aes(x = gross, y = fct_reorder(title, gross))) +
-  geom_col() +
+  geom_col(fill='blue') +
   theme_bw()+
   labs(
     title = "",
@@ -596,7 +597,7 @@ p <- p +
 p  
 
 # We can also use facet_wrap() to get one plot per state
-p + facet_wrap(~state)
+p + facet_wrap(~state, scales = "free")
   
 ```
 
