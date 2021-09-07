@@ -41,7 +41,7 @@ boot_rent <- nw14sa_rents %>%
   generate(reps = 1000, type = "bootstrap") %>%
   
   # Find the median of each sample
-  calculate(stat = "mean")
+  calculate(stat = "median")
 
 percentile_ci <- boot_rent %>%
   get_ci(level = 0.95, type = "percentile")

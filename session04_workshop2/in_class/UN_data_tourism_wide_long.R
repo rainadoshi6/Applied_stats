@@ -36,7 +36,8 @@ tourism_wide <-  un_tourism_data %>%
 skim(tourism_wide)
 
 tourism_wide <- tourism_wide %>% 
-  filter(!is.na(tourism_expenditure), !is.na(tourist_arrivals))
+  filter(!is.na(tourism_expenditure), 
+         !is.na(tourist_arrivals))
 
 skim(tourism_wide)
 
