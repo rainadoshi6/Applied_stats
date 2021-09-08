@@ -67,7 +67,11 @@ Before you carry on with your analysis, it's is always a good idea to check with
 
 You will first start with analyzing the `weight` of participants in kilograms. Using visualization and summary statistics, describe the distribution of weights. How many observations are we missing weights from?
 
+We can see that there are 1004 missing values
+
 ```{r, eda_on_weight}
+
+summary(yrbss$weight)
 
 ```
 
