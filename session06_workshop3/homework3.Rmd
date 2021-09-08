@@ -77,23 +77,16 @@ summary(yrbss$weight)
 
 Next, consider the possible relationship between a high schooler’s weight and their physical activity. Plotting the data is a useful first step because it helps us quickly visualize trends, identify strong associations, and develop research questions.
 
-Let’s create a new variable `physical_3plus`, which will be `yes` if they are physically active for at least 3 days a week, and `no` otherwise.
+Let’s create a new variable in the dataframe `yrbss`, called `physical_3plus` , which will be `yes` if they are physically active for at least 3 days a week, and `no` otherwise. You may also want to calculate the number and % of those who are and are not active for more than 3 days. RUse the `count()` function and see if you get the same results as `group_by()... summarise()`
 
   
-```{r}
-yrbss <- yrbss %>% 
-  mutate(physical_3plus = ifelse(physically_active_7d >= 3, "yes", "no"))
-
-yrbss %>% filter(!is.na(physical_3plus)) %>% 
-  group_by(physical_3plus) %>% 
-  summarise(count = n()) %>% 
-  mutate(prop= count/sum(count))
-
+```{r, mutate_and_count}
 #another way to do it
 #yrbss %>% 
 #  filter(!is.na(physical_3plus)) %>% 
 # count(physical_3plus, sort=TRUE) %>% 
 #  mutate(prop= n/sum(n))
+
 
 ```
 Can you provide a 95% confidence interval for the population proportion of high schools that are *NOT* active 3 or more days per week?
@@ -136,25 +129,13 @@ ggplot(yrbss_filtered, aes(x = weight , y = physical_3plus)) +
 
 ## Confidence Interval
 
-
 We can see that the median weight of the sample who are physically active for more than three days is greater than the median of the sample who are active for lesser than three days. This may be because of higher weight of muscle or bone due to working out/exercising. 
 
 Boxplots show how the medians of the two distributions compare, but we can also compare the means of the distributions using either a confidence interval or a hypothesis test. Note that when we calculate the mean/SD, etc weight in these groups using the mean function, we must ignore any missing values by setting the `na.rm = TRUE`.
 
 
-```{r}
-yrbss %>%
-  group_by(physical_3plus) %>%
-  filter(!is.na(physical_3plus)) %>% 
-  summarise(mean_weight = mean(weight, na.rm = TRUE),
-            sd_weight = sd(weight, na.rm=TRUE),
-            count = n(),
-            se_weight = sd_weight/sqrt(count),
-            t_critical = qt(0.975, count-1), 
-            margin_of_error = t_critical * se_weight,
-            lower = mean_weight - t_critical * se_weight,
-            upper = mean_weight + t_critical * se_weight
-            )
+
+```{r, ci_using_formulas}
 
 ```
 
@@ -164,7 +145,8 @@ There is an observed difference of about 1.77kg (68.44 - 66.67), and we notice t
 
 Write the null and alternative hypotheses for testing whether mean weights are different for those who exercise at least times a week and those who don’t.
 
-```{r}
+```{r, t_test_using_R}
+
 t.test(weight ~ physical_3plus, data = yrbss)
 ```
 
@@ -177,7 +159,7 @@ Next, we will introduce a new function, `hypothesize`, that falls into the infer
 
 But first, we need to initialize the test, which we will save as `obs_diff`.
 
-```{r}
+```{r, calc_obs_difference}
 obs_diff <- yrbss %>%
   specify(weight ~ physical_3plus) %>%
   calculate(stat = "diff in means", order = c("yes", "no"))
@@ -193,11 +175,19 @@ Notice how you can use the functions specify and calculate again like you did fo
 After you have initialized the test, you need to simulate the test on the null distribution, which we will save as null.
 
 
-```{r}
+```{r, hypothesis_testing_using_infer_package}
+
 null_dist <- yrbss %>%
+  # specify variables
   specify(weight ~ physical_3plus) %>%
+  
+  # assume independence, i.e, there is no difference
   hypothesize(null = "independence") %>%
+  
+  # generate 1000 reps, of type "permute"
   generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
   calculate(stat = "diff in means", order = c("yes", "no"))
 
 #null_dist%>% get_pvalue(obs_stat = stat , direction="both")
@@ -376,6 +366,29 @@ Using your data manipulation and visualisation skills, please use the Brexit res
 knitr::include_graphics(here::here("images", "brexit.png"), error = FALSE)
 ```
 
+
+# Challenge 1: CDC COVID-19 Public Use Data
+
+The [CDC Covid-19 Case Surveillance Data](https://data.cdc.gov/Case-Surveillance/COVID-19-Case-Surveillance-Public-Use-Data/vbim-akqf) is a case surveillance public use dataset with 12 elements for all COVID-19 cases shared with CDC and includes demographics, any exposure history, disease severity indicators and outcomes, presence of any underlying medical conditions and risk behaviors. You can see the variables from 
+
+
+```{r covid_data, echo=FALSE, out.width="100%"}
+knitr::include_graphics(here::here("images", "cdc_data.png"), error = FALSE)
+```
+
+
+There are well over 28 million entries of individual, and we will work with SQLlite database, rather than a CSV file. I would like you to produce two graphs that show death % rate:
+
+1. by age group, sex, and whether the patient had co-morbidities or not
+1. by age group, sex, and whether the patient was admited to Intensive Care Unit (ICU) or not.
+
+
+```{r covid_challenge, echo=FALSE, out.width="100%"}
+knitr::include_graphics(here::here("images", "covid_death_rate_comorbidities.png"), error = FALSE)
+knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error = FALSE)
+```
+
+To do this, you will have to think what dplyr verbs to use to select, filter, group_by, etc. You will then use the example shown in https://mam2022.netlify.app/reference/reference_sql/#establish-a-connection-with-the-sqlite-database-1 to use dplyr, dbplyr, and ggplot to produce these graphs.
 
 
 # Challenge 2:GDP components over time and among countries
