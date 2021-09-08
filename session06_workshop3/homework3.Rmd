@@ -89,23 +89,55 @@ yrbss %>% filter(!is.na(physical_3plus)) %>%
   summarise(count = n()) %>% 
   mutate(prop= count/sum(count))
 
-
-yrbss %>% 
-  filter(!is.na(physical_3plus)) %>% 
-  count(physical_3plus, sort=TRUE) %>% 
-  mutate(prop= n/sum(n))
+#another way to do it
+#yrbss %>% 
+#  filter(!is.na(physical_3plus)) %>% 
+# count(physical_3plus, sort=TRUE) %>% 
+#  mutate(prop= n/sum(n))
 
 ```
 Can you provide a 95% confidence interval for the population proportion of high schools that are *NOT* active 3 or more days per week?
+
+```{r, confidence interval}
+
+#std_error is the standard deviation of the sample mean
+
+
+std_error <- sqrt((0.331* 0.669)/(8906+4404))
+
+t_critical <- qt(0.975,4404-1)
+t_critical
+
+margin_of_error <- t_critical * std_error
+
+phy_3plus_low <- 0.331 - margin_of_error
+phy_3plus_high <- 0.331 + margin_of_error
+
+phy_3plus_high
+phy_3plus_low
+  
+  
+```
 
   
 Make a boxplot of `physical_3plus` vs. `weight`. Is there a relationship between these two variables? What did you expect and why?
 
 ```{r, boxplot}
 
+yrbss_filtered <- yrbss %>%filter(!is.na(physical_3plus))
+
+ggplot(yrbss_filtered, aes(x = weight , y = physical_3plus)) +
+  geom_boxplot()+
+  labs(title = "Boxplot of Weight vs Active for more than 3 days",
+       x = "Weight",
+       y = "Active more than 3 days")
+
 ```
 
 ## Confidence Interval
+
+
+We can see that the median weight of the sample who are physically active for more than three days is greater than the median of the sample who are active for lesser than three days. This may be because of higher weight of muscle or bone due to working out/exercising. 
 
 Boxplots show how the medians of the two distributions compare, but we can also compare the means of the distributions using either a confidence interval or a hypothesis test. Note that when we calculate the mean/SD, etc weight in these groups using the mean function, we must ignore any missing values by setting the `na.rm = TRUE`.
 
@@ -150,6 +182,8 @@ obs_diff <- yrbss %>%
   specify(weight ~ physical_3plus) %>%
   calculate(stat = "diff in means", order = c("yes", "no"))
 
+obs_diff
+
 ```
 
 
@@ -165,6 +199,10 @@ null_dist <- yrbss %>%
   hypothesize(null = "independence") %>%
   generate(reps = 1000, type = "permute") %>%
   calculate(stat = "diff in means", order = c("yes", "no"))
+
+#null_dist%>% get_pvalue(obs_stat = stat , direction="both")
+
+null_dist
 
 ```
 
@@ -188,11 +226,16 @@ We can also calculate the p-value for your hypothesis test using the function `i
 
 ```{r}
 
+
+options(digits = 5)
+
+
 null_dist %>% visualize() +
   shade_p_value(obs_stat = obs_diff, direction = "two-sided")
 
 null_dist %>%
   get_p_value(obs_stat = obs_diff, direction = "two_sided")
+
 
 ```
 
