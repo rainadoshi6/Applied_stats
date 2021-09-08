@@ -134,7 +134,8 @@ ggplot(tidyweather, aes(x=date, y = delta))+
   theme_bw() +
   labs (
     title = "Weather Anomalies"
-  ) + facet_wrap(~month)
+  )+
+  facet_wrap(~month)
 
 ```
 
@@ -235,6 +236,13 @@ formula_ci <- comparison %>% filter(interval =="2011-present") %>%
   # calculate mean, SD, count, SE, lower/upper 95% CI
   # what dplyr verb will you use? 
 
+  summarise(ann_aver_delta = mean(delta,na.rm=T),
+            sd_delta = sd(delta,na.rm=T),
+            count=n(),
+            t_critical = qt(0.975,count-1),
+            margin_of_error = t_critical*sd_delta/sqrt(count),
+            delta_low = ann_aver_delta-margin_of_error,
+            delta_high = ann_aver_delta+margin_of_error)
 #print out formula_CI
 formula_ci
 ```
@@ -421,6 +429,14 @@ As we saw in class, fivethirtyeight.com has detailed data on [all polls that tra
 approval_polllist <- read_csv('https://projects.fivethirtyeight.com/biden-approval-data/approval_polllist.csv') 
 
 glimpse(approval_polllist)
+
+approval_polllist_tidy <- approval_polllist %>% 
+  mutate(model_date=ymd(modeldate),
+         start_date = ymd(startdate),
+         end_date = ymd(enddate))
+
+view(approval_polllist_tidy)
+
 
 # Use `lubridate` to fix dates, as they are given as characters.
 ```
