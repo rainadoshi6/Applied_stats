@@ -1,6 +1,6 @@
 ---
 title: "Session 4: Homework 2"
-author: "Alex Kubbinga, Clara Moreno Sanchezu, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao"
+author: "Study group and members' names go here"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -41,6 +41,7 @@ library(janitor)
 library(httr)
 library(readxl)
 library(vroom)
+library(infer)
 ```
 
 
@@ -66,7 +67,7 @@ weather <-
 Notice that, when using this function, we added two options: `skip` and `na`.
 
 1. The `skip=1` option is there as the real data table only starts in Row 2, so we need to skip one row. 
-2. `na = "***"` option informs R how missing observations in the spreadsheet are coded. When looking at the spreadsheet, you can see that missing data is coded as "***". It is best to specify this here, as otherwise some of the data is not recognized as numeric data.
+1. `na = "***"` option informs R how missing observations in the spreadsheet are coded. When looking at the spreadsheet, you can see that missing data is coded as "***". It is best to specify this here, as otherwise some of the data is not recognized as numeric data.
 
 Once the data is loaded, notice that there is a object titled `weather` in the `Environment` panel. If you cannot see the panel (usually on the top-right), go to `Tools` > `Global Options` > `Pane Layout` and tick the checkbox next to `Environment`. Click on the `weather` object, and the dataframe will pop up on a seperate tab. Inspect the dataframe.
 
@@ -76,21 +77,12 @@ You have two objectives in this section:
 
 1. Select the year and the twelve month variables from the `weather` dataset. We do not need the others (J-D, D-N, DJF, etc.) for this assignment. Hint: use `select()` function.
 
-```{r}
-weather <- weather %>% 
-  select(1:13)
-```
-
-
 1. Convert the dataframe from wide to 'long' format. Hint: use `gather()` or `pivot_longer()` function. Name the new dataframe as `tidyweather`, name the variable containing the name of the month as `month`, and the temperature deviation values as `delta`.
 
 
 ```{r tidyweather}
-tidyweather <- weather %>% 
-  pivot_longer(
-    cols = 2:13,
-    names_to = "month",
-    values_to = "delta")
+tidyweather <- weather %>%  select(1:13) %>% pivot_longer(cols=2:13, names_to = "Month", values_to="delta")
+
 ```
 
 Inspect your dataframe. It should have three variables now, one each for 
@@ -103,30 +95,14 @@ Inspect your dataframe. It should have three variables now, one each for
 
 Let us plot the data using a time-series scatter plot, and add a trendline. To do that, we first need to create a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
 
-```{r}
-# add date column
-tidyweather <- tidyweather %>% 
-  mutate(date = ym(paste(Year,"-",month)))
-
-# time series plot 
-tidyweather %>% 
-  ggplot(aes(x=date,y=delta)) +
-  geom_point()+
-  geom_smooth(se=F)+
-  labs(
-    title = "Time series scatter plot"
-  )+
-  NULL
-```
-
 
 > In the following chunk of code, I used the `eval=FALSE` argument, which does not run a chunk of code; I did so that you can knit the document before tidying the data and creating a new dataframe `tidyweather`. When you actually want to run this code and knit your document, you must delete `eval=FALSE`, **not just here but in all chunks were `eval=FALSE` appears.**
 
 
-```{r scatter_plot eval=FALSE}
+```{r scatter_plot, eval=FALSE}
 
 tidyweather <- tidyweather %>%
-  mutate(date = ymd(paste(as.character(Year), month, "1")),
+  mutate(date = ymd(paste(as.character(Year), Month, "1")),
          month = month(date, label=TRUE),
          year = year(date))
 
@@ -142,10 +118,13 @@ ggplot(tidyweather, aes(x=date, y = delta))+
 
 Is the effect of increasing temperature more pronounced in some months? Use `facet_wrap()` to produce a seperate scatter plot for each month, again with a smoothing line. Your chart should human-readable labels; that is, each month should be labeled "Jan", "Feb", "Mar" (full or abbreviated month names are fine), not `1`, `2`, `3`. 
 
+
+
 ```{r facet_wrap, echo=FALSE}
 
+
 tidyweather <- tidyweather %>%
-  mutate(date = ymd(paste(as.character(Year), month, "1")),
+  mutate(date = ymd(paste(as.character(Year), Month, "1")),
          month = month(date, label=TRUE),
          year = year(date))
 
@@ -207,10 +186,10 @@ average_annual_anomaly <- tidyweather %>%
   
   # creating summaries for mean delta 
   # use `na.rm=TRUE` to eliminate NA (not available) values 
-  summarise(......) 
+  summarise(annual_average_delta = mean(delta), na.rm=TRUE) 
 
 #plotting the data:
-ggplot(average_annual_anomaly, aes(x=year, y= annual_average_delta))+
+ggplot(average_annual_anomaly, aes(x=Year, y= annual_average_delta))+
   geom_point()+
   
   #Fit the best fit line, using LOESS method
@@ -237,13 +216,26 @@ Your task is to construct a confidence interval for the average annual delta sin
 
 ```{r, calculate_CI_using_formula, eval=FALSE}
 
-formula_ci <- comparison %>% 
+formula_ci <- comparison %>% filter(interval =="2011-present") %>% 
+  summarise(annual_average_delta = mean(delta, na.rm=TRUE),
+            sd_delta = sd(delta, na.rm=TRUE),
+            count = n(),
+            se_delta = sd_delta/sqrt(count),
+            t_critical = qt(0.975, count-1),
+            margin_of_error = t_critical * se_delta,
+            delta_low = annual_average_delta - margin_of_error,
+            delta_high = annual_average_delta + margin_of_error)
+
+    
+  
+
   # choose the interval 2011-present
   # what dplyr verb will you use? 
-  filter(interval == "2011-present") %>%
+
   # calculate summary statistics for temperature deviation (delta) 
   # calculate mean, SD, count, SE, lower/upper 95% CI
   # what dplyr verb will you use? 
+
   summarise(ann_aver_delta = mean(delta,na.rm=T),
             sd_delta = sd(delta,na.rm=T),
             count=n(),
@@ -259,22 +251,26 @@ formula_ci
 ```{r, calculate_CI_using_bootstrap}
 
 # use the infer package to construct a 95% CI for delta
-comparison %>% 
-  # choose the interval 2011-present
-  # what dplyr verb will you use? 
-  filter(interval == "2011-present") %>%
-  # Specify the variable of interest
+set.seed(1234)
+
+
+
+boot_delta<- comparison %>%
+  filter(interval =="2011-present") %>%
   specify(response = delta) %>%
-  
-  # Generate a bunch of bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "mean") %>% 
+  get_confidence_interval(level = 0.95, type = "percentile")
   
-  # Find the median of each sample
-  calculate(stat = "mean")%>%
-infer::get_confidence_interval(level = 0.95, type = "percentile")
+boot_delta
+
 ```
 
 > What is the data showing us? Please type your answer after (and outside!) this blockquote. You have to explain what you have done, and the interpretation of the result. One paragraph max, please!
+
+First we filtered out the years to include only 2011-present. Then we calculated summary statistics including the mean,sd,se and from this we calculated the confidence interval.
+Using both the bootstrap method and the formula method we got a 95% confidence interval for delta as (1.01,1.11). This means that we are 95% confident that the true mean for 2011-present for delta lies within the range of (1.01,1.11). We can confirm that there is a net increase in temperature since the base year.
+
 
 # General Social Survey (GSS)
 
@@ -303,22 +299,50 @@ We will be creating 95% confidence intervals for population parameters. The vari
 
 Can we estimate the *population* proportion of Snapchat or Instagram users in 2016?
 
+
+
 1. Create a  new variable, `snap_insta` that is *Yes* if the respondent reported using any of Snapchat (`snapchat`) or Instagram (`instagrm`), and *No* if not. If the recorded value was NA for both of these questions, the value in your new variable should also be NA.
 1. Calculate the proportion of Yes’s for `snap_insta` among those who answered the question, i.e. excluding NAs.
 1. Using the CI formula for proportions, please construct 95% CIs for men and women who used either Snapchat or Instagram
+
+
 ```{r}
-gss %>%
-  filter(snapchat != "NA") %>%
-  mutate(snapchat = factor(snapchat,levels = c("Yes","No"))) %>%
-  # Specify the variable of interest
-  specify(response = snapchat) %>%
+gss<-gss %>% mutate(snap_insta = case_when(
+  (snapchat =="Yes" | instagrm == "Yes") ~ "Yes",
+  (snapchat =="No" & instagrm == "No") ~ "No",
+  T ~ "NA"))
+rows_without_na <- gss %>%  filter(snap_insta != "NA") %>% nrow()
+
+gss %>% 
+  filter(!snap_insta == "NA") %>% 
+  count(snap_insta, sort=TRUE) %>% 
+  mutate(prop = n/sum(n))
+
+# se for proportion = sqrt (P*(1-)/n)
+
+se_prop = sqrt(
+  0.625 * 0.375 / 1372
+)
+
+conf_low <-  0.375 - 1.96 * se_prop
+conf_high <- 0.375 + 1.96 * se_prop
+
+conf_high
+conf_low
+#the true mean of insta or snap users falls between 0.349 and 0.401
+# gss %>% 
+#   filter(snap_insta=="Yes")%>%
+#   summarise(proportion_SorI= n()/rows_without_na)
+
+# boot_snapinsta<- gss %>%
+#   filter(!snap_insta == "NA") %>% 
+#   specify(response = snap_insta) %>%
+#   generate(reps = 1000, type = "bootstrap") %>%
+#   calculate(stat = "mean") %>% 
+#   get_confidence_interval(level = 0.95, type = "percentile")
+#   
+# boot_delta
   
-  # Generate a bunch of bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  
-  # Find the median of each sample
-  calculate(stat = "mean") %>% 
-  get_confidence_interval(level = 0.95, type="percentile")
   
 ```
 
@@ -329,25 +353,38 @@ Can we estimate the *population* proportion of Twitter users by education level 
 There are 5 education levels in variable `degree` which, in ascneding order of years of education, are Lt high school, High School, Junior college, Bachelor, Graduate. 
 
 1. Turn `degree` from a character variable into a factor variable. Make sure the order is the correct one and that levels are not sorted alphabetically which is what R by default does. 
-```{r}
-gss <- gss %>%
-  mutate(degree = factor(degree, levels=c("Lt high school","High school", "Junior college", "Bachelor", "Graduate")),
-         bachelor_or_graduate = case_when(
-           degree == "Bachelor" | degree == "Graduate" ~ "Yes",
-           degree == "Bachelor" & degree == "Graduate" ~ "No",
-           T ~ "NA")
-         )
-# gss %>%
-#   filter(bachelor_or_graduate!="NA") %>%
-#   prop_test(bachelor_or_graduate~NULL)
-
-```
-
-
 1. Create a  new variable, `bachelor_graduate` that is *Yes* if the respondent has either a `Bachelor` or `Graduate` degree. As before, if the recorded value for either was NA, the value in your new variable should also be NA.
 1. Calculate the proportion of `bachelor_graduate` who do (Yes) and who don't (No) use twitter. 
 1. Using the CI formula for proportions, please construct two 95% CIs for `bachelor_graduate` vs whether they use (Yes) and don't (No) use twitter. 
 1. Do these two Confidence Intervals overlap?
+
+```{r}
+gss <- gss %>%  
+  mutate(degree = factor(degree, levels=c("Lt high school","High school", "Junior college", "Bachelor", "Graduate")),
+                       bachelor_graduate = case_when(
+  (degree =="Bachelor" | degree == "Graduate") ~ "Yes",
+  T ~ "NA"))
+
+gss %>% filter(bachelor_graduate == "Yes") %>%
+  filter(twitter != "NA") %>%
+  count(twitter, sort=TRUE) %>% 
+  mutate(prop = n/sum(n))
+
+se_prop_twitter = sqrt(
+  0.767 * 0.233 / 389
+)
+
+conf_low_usetwitter <-  0.233 - 1.96 * se_prop_twitter
+conf_high_usetwitter <- 0.233 + 1.96 * se_prop_twitter
+
+conf_low_notwitter <-  0.767 - 1.96 * se_prop_twitter
+conf_high_notwitter <- 0.767 + 1.96 * se_prop_twitter
+
+conf_low_notwitter
+conf_high_notwitter
+
+
+```
 
 
 ## Email usage
@@ -358,6 +395,29 @@ Can we estimate the *population* parameter on time spent on email weekly?
 1. Visualise the distribution of this new variable. Find the mean and the median number of minutes respondents spend on email weekly. Is the mean or the median a better measure of the typical amoung of time Americans spend on email weekly? Why?
 1. Using the `infer` package, calculate a 95% bootstrap confidence interval for the mean amount of time Americans spend on email weekly. Interpret this interval in context of the data, reporting its endpoints in “humanized” units (e.g. instead of 108 minutes, report 1 hr and 8 minutes). If you get a result that seems a bit odd, discuss why you think this might be the case.
 1. Would you expect a 99% confidence interval to be wider or narrower than the interval you calculated above? Explain your reasoning.
+
+
+```{r}
+
+gss <- gss %>%
+  mutate(email = as.numeric(emailhr) * 60 + as.numeric(emailmin))
+
+gss %>%
+  ggplot(aes(x=email)) +
+  geom_histogram()
+
+boot_email <- gss %>%
+  specify(response = email) %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "mean") %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+
+paste(boot_email%/%60, "hour", round(boot_email%%60), "minute")
+
+# wider
+
+
+```
 
 
 # Biden's Approval Margins
@@ -461,7 +521,7 @@ bike <- bike0 %>%
   clean_names() %>% 
   rename (bikes_hired = number_of_bicycle_hires) %>% 
   mutate (year = year(day),
-          month = lubridate::month(day, label = TRUE),
+          month = lubridate::month(day, label = F),
           week = isoweek(day))
 ```
 
@@ -480,6 +540,45 @@ However, the challenge I want you to work on is to reproduce the following two g
 ```{r tfl_absolute_monthly_change, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "tfl_monthly.png"), error = FALSE)
 ```
+
+```{r warnings=FALSE, messages=FALSE}
+expected_hires <- bike %>% 
+  filter(day>="2016-01-01")%>%
+  group_by(year, month) %>%
+  summarize(bikes_hired = mean(bikes_hired)) %>%
+  group_by(month) %>%
+  summarise(expected_hired = mean(bikes_hired))
+
+plot_bike <- bike %>% 
+  filter(day>="2016-01-01")%>%
+  group_by(year, month) %>%
+  summarize(bikes_hired = mean(bikes_hired)) %>%
+  inner_join(expected_hires, by = "month") %>%
+  mutate(fill = bikes_hired>expected_hired) 
+plot_bike$lower = apply(plot_bike[,3:4],1,min)
+plot_bike$higher = apply(plot_bike[,3:4],1,max)
+plot_bike$date = ym(paste(plot_bike$year,plot_bike$month))
+
+plot_bike %>% 
+  ggplot() +
+  geom_area(aes(x=month,y=bikes_hired,group=year,fill="red"))+
+  geom_area(aes(x=month,y=expected_hired,group=year,fill="green"))+
+  geom_area(aes(x=month,y=lower,group=year,fill=NA))+
+  #geom_ribbon(aes(x=2,ymin=bikes_hired, ymax=expected_hired,fill="red"),alpha=0.3)+
+  facet_wrap(~year)+
+  NULL
+
+plot_bike %>%
+  #filter(year==2016) %>% 
+  ggplot(aes(month)) + 
+  geom_line(aes(y=expected_hired),colour="blue",size=2)+
+  geom_line(aes(y=bikes_hired),colour="black",size=1)+
+  geom_ribbon(aes(ymin = expected_hired, ymax = bikes_hired))+
+  facet_wrap(~year)+
+  NULL
+
+```
+
 
 The second one looks at percentage changes from the expected level of weekly rentals. The two grey shaded rectangles correspond to Q2 (weeks 14-26) and Q4 (weeks 40-52).
 
