@@ -1,0 +1,17 @@
+---
+title: "Notes"
+author: "Yuan Gao"
+date: "08/09/2021"
+output: ioslides_presentation
+---
+
+# Session 1 - Lecture 1
+
+## Descriptive Statistics
+
+## Exploratory Data ANalytics
+
+## Normal Distribution
+
+
+
