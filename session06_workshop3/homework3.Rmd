@@ -292,9 +292,10 @@ knitr::include_graphics(here::here("images", "directors.png"), error = FALSE)
 First, I would like you to reproduce this graph. You may find `geom_errorbar()` and `geom_rect()` useful.
 
 ```{r}
-# movies <- read_csv("/Users/huangxuejing/Desktop/AM-01/am01/data/movies.csv")
 movies <- read_csv(here::here('data', 'movies.csv'))
+
 movies_comp <- movies %>% 
+  filter(director %in% c("Steven Spielberg","Tim Burton")) %>%
   group_by(director) %>% 
   summarise(mean_rating = mean(rating),
             std_rating = sd(rating),
@@ -304,14 +305,21 @@ movies_comp <- movies %>%
             margin_of_error = t_critical * se_rating,
             rating_low = mean_rating - margin_of_error,
             rating_high = mean_rating + margin_of_error) %>% 
-            filter(director %in% c("Steven Spielberg","Tim Burton")) %>% 
   arrange(desc(mean_rating))
-ggplot(movies_comp,mapping = aes(x=mean_rating,y=director))+
+
+movies_comp %>% 
+  ggplot(mapping = aes(x=mean_rating,y=fct_relevel(director, levels=c("Tim Burton","Steven Spielberg"))))+
   geom_point(size = 5, mapping = aes(color = director))+
   geom_errorbar(aes(xmin = rating_low, xmax = rating_high, color = director), width = 0.1,size = 1.5)+
-  geom_text(aes(label = round(mean_rating,digits=2)), position = position_dodge(0.9),vjust=-2,size = 10)+
+  ggrepel::geom_text_repel(aes(x=mean_rating, label = round(mean_rating, 2))) +
+  ggrepel::geom_text_repel(aes(x=rating_low, label = round(rating_low, 2))) +
+  ggrepel::geom_text_repel(aes(x=rating_high, label = round(rating_high, 2))) +
+  # geom_text(aes(label = round(mean_rating,digits=2)), position = position_dodge(0.9),vjust=-2,size = 10)+
   geom_rect(xmin = 7.27,xmax = 7.33, ymin=0, ymax=Inf, alpha=0.4)+
-  labs(title = "Do Spielberg and Burton have the same mean IMDB ratings?",subtitle = "95% confidence interval overlap",x = "Mean IMDB Rating")
+  labs(title = "Do Spielberg and Burton have the same mean IMDB ratings?",
+       subtitle = "95% confidence interval overlap",
+       x = "Mean IMDB Rating") +
+  NULL
 ```
 
 In addition, you will run a hpothesis test. You should use both the `t.test` command and the `infer` package to simulate from a null distribution, where you assume zero difference between the two.
