@@ -42,6 +42,7 @@ library(tidyquant)
 library(infer)
 library(openintro)
 library(readr)
+library(dplyr)
 ```
 
 # Youth Risk Behavior Surveillance
@@ -331,8 +332,8 @@ if calculated the t_stat by hand:t_stat = 2.7, p_valuel = 0.007, H0 should be re
 movies_comp
 
 t_stat =  (7.57-6.93)/sqrt(0.695*0.695/23 + 0.749*0.749/16)
-p_value = 2*0.0035
-
+# p_value = 2*0.0035
+p_value = 2*(1-pt(2.7,37))
 t_stat
 p_value
 
@@ -352,6 +353,11 @@ t.test(rating ~ director, data = movies_hypo)
 
 
 ```{r}
+
+diff <- movies_hypo %>%
+  specify(rating ~ director) %>%
+  calculate(stat = "diff in means", order = c("Steven Spielberg", "Tim Burton"))
+
 set.seed(1234)
 null_dist_movies <- movies_hypo %>%
   # specify variables
@@ -551,13 +557,23 @@ The first thing you need to do is to tidy the data, as it is in wide format and 
 
 ```{r reshape_GDP_data, eval=FALSE}
 
-tidy_GDP_data  <-  ?????????????????????????
+tidy_GDP_data  <- UN_GDP_data %>% 
+  pivot_longer(cols = 4:51, names_to = "year", values_to = "volume") %>% 
+  mutate(volume_bn = volume / 10^9, indicator = case_when (
+    IndicatorName == "Household consumption expenditure (including Non-profit institutions serving households)" ~ "Household expenditure",
+    IndicatorName == "Exports of goods and services" ~ "Exports",
+    IndicatorName == "Imports of goods and services" ~ "Imports",
+    IndicatorName == "General government final consumption expenditure" ~ "Government expenditure",T~"NA")) %>% 
+  filter(indicator!="NA")
 
 glimpse(tidy_GDP_data)
 
 
 # Let us compare GDP components for these 3 countries
 country_list <- c("United States","India", "Germany")
+tidy_GDP_country <- tidy_GDP_data %>% filter (Country %in% country_list)
+
+tidy_GDP_country
 ```
 
 First, can you produce this plot?
@@ -565,6 +581,14 @@ First, can you produce this plot?
 ```{r gdp1, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "gdp1.png"), error = FALSE)
 ```
+```{r}
+# ggplot(tidy_GDP_country,aes(x=year,y=volume_bn,color = indicator))+
+#   geom_line()+
+#   facet_wrap(~Country)
+
+```
+
+
 
 Secondly, recall that GDP is the sum of Household Expenditure (Consumption *C*), Gross Capital Formation (business investment *I*), Government Expenditure (G) and Net Exports (exports - imports). Even though there is an indicator `Gross Domestic Product (GDP)` in your dataframe, I would like you to calculate it given its components discussed above.
 
