@@ -325,63 +325,64 @@ In addition, you will run a hpothesis test. You should use both the `t.test` com
 H0:the mean IMDB rating for Steven Spielberg and Tim Burton are the same
 H1:the mean IMDB rating for Steven Spielberg is higher than the mean IMDB rating for Tim Burton
 
+if calculated the t_stat by hand:t_stat = 2.7, p_valuel = 0.007, H0 should be rejected
+
+```{r}
+movies_comp
+
+t_stat =  (7.57-6.93)/sqrt(0.695*0.695/23 + 0.749*0.749/16)
+p_value = 2*0.0035
+
+t_stat
+p_value
+
+```
+
+
 ```{r load-movies-data}
 movies <- read_csv(here::here("data", "movies.csv"))
 glimpse(movies)
 
-```
-
-Your R code and analysis should go here. If you want to insert a blank chunk of R code you can just hit `Ctrl/Cmd+Alt+I`
-
-```{r}
-movies <- read_csv(here::here("data", "movies.csv"))
-movies_hypo <- movies %>% 
-  group_by(director) %>% 
-  filter(director %in% c("Steven Spielberg","Tim Burton")) %>% 
-  mutate(Is_SS = case_when(director == "Steven Spielberg" ~ "Yes", director == "Tim Burton" ~ "No"))
-
-t.test(rating ~ Is_SS, data = movies_hypo)
+t.test(rating ~ director, data = movies_hypo)
 
 ```
 
+
 ```{r}
+
 set.seed(1234)
-
-movies <- read_csv(here::here("data", "movies.csv"))
-boot_ratings <- movies %>%
-  # Choose only  Animation films
-  filter(director %in% c("Steven Spielberg","Tim Burton")) %>%
-
-  # Specify the variable of interest
-  specify(response = rating) %>%
+null_dist_movies <- movies_hypo %>%
+  # specify variables
+  specify(rating ~ director) %>%
   
-  # Generate a bunch of bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
+  # assume independence, i.e, there is no difference
+  hypothesize(null = "independence") %>%
   
-  # Find the median of each sample
-  calculate(stat = "mean")
+  # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
+  calculate(stat = "diff in means", order = c("Steven Spielberg", "Tim Burton"))
 
-# select animation from the formula-calculated CIs
-director_ci <- movies_comp %>%
-  filter (director == "Steven Spielberg")
+null_dist_movies %>% 
+  visualise()
 
-percentile_ci <- boot_ratings %>% 
-  get_confidence_interval(level = 0.95, type = "percentile")
-percentile_ci
+# Warning: Please be cautious in reporting a p-value of 0. This result is an approximation based on the number of `reps` chosen in the `generate()` step.
+p_value <- null_dist_movies %>% 
+  get_pvalue(obs_stat = diff, direction="both")
 
-
-director_ci %>% 
-  select(rating_low, rating_high)
-
-visualize(boot_ratings) + 
-  shade_ci(endpoints = percentile_ci,fill = "khaki")+
-  labs(title='Bootstrap CI for Spielberg films',
-       subtitle = 'Formula CI shown with dotted red lines')+
-  geom_vline(xintercept = director_ci$rating_low, colour = "red", linetype="dashed", size=1.2)+
-  geom_vline(xintercept = director_ci$rating_high, colour = "red", linetype="dashed", size=1.2)+
-  theme_bw()+
+ggplot(data = null_dist_movies, aes(x = stat)) +
+  geom_histogram(binwidth = 0.1)+
   NULL
 ```
+```{r}
+null_dist_movies %>% visualize() +
+  shade_p_value(obs_stat = diff, direction = "two-sided")
+
+null_dist %>%
+  get_p_value(obs_stat = diff, direction = "two_sided")
+```
+
 
 # Omega Group plc- Pay Discrimination
 
