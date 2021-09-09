@@ -460,6 +460,13 @@ knitr::include_graphics(here::here("images", "covid_death_rate_comorbidities.png
 knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error = FALSE)
 ```
 
+```{r}
+install.packages("RSocrata")
+library(RSocrata)
+# cdc <- read.socrata("https://data.cdc.gov/resource/vbim-akqf.csv")
+```
+
+
 To do this, you will have to think what dplyr verbs to use to select, filter, group_by, etc. You will then use the example shown in <https://mam2022.netlify.app/reference/reference_sql/#establish-a-connection-with-the-sqlite-database-1> to use dplyr, dbplyr, and ggplot to produce these graphs.
 
 # Challenge 2:GDP components over time and among countries
