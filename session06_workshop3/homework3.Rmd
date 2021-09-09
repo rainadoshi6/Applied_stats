@@ -315,13 +315,15 @@ p_value
 movies <- read_csv(here::here("data", "movies.csv"))
 glimpse(movies)
 
+movies_hypo <- movies %>%
+  filter(director %in% c("Steven Spielberg","Tim Burton")) 
+
 t.test(rating ~ director, data = movies_hypo)
 
 ```
 
 
 ```{r}
-
 set.seed(1234)
 null_dist_movies <- movies_hypo %>%
   # specify variables
