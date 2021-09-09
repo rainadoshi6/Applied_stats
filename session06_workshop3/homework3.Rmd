@@ -460,10 +460,10 @@ knitr::include_graphics(here::here("images", "covid_death_rate_comorbidities.png
 knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error = FALSE)
 ```
 
-```{r}
+```{r try to load datasets, eval=FALSE}
 install.packages("RSocrata")
 library(RSocrata)
-# cdc <- read.socrata("https://data.cdc.gov/resource/vbim-akqf.csv")
+cdc <- read.socrata("https://data.cdc.gov/resource/vbim-akqf.csv")
 ```
 
 
