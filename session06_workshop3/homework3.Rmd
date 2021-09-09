@@ -297,17 +297,56 @@ In addition, you will run a hpothesis test. You should use both the `t.test` com
 
 You can load the data and examine its structure
 
+if calculated the t_stat by hand:t_stat = 2.7, p_valuel = 0.007, H0 should be rejected
+
+```{r}
+movies_comp
+
+t_stat =  (7.57-6.93)/sqrt(0.695*0.695/23 + 0.749*0.749/16)
+p_value = 2*0.0035
+
+t_stat
+p_value
+
+```
+
+
 ```{r load-movies-data}
 movies <- read_csv(here::here("data", "movies.csv"))
 glimpse(movies)
 
+t.test(rating ~ director, data = movies_hypo)
+
 ```
 
-Your R code and analysis should go here. If you want to insert a blank chunk of R code you can just hit `Ctrl/Cmd+Alt+I`
 
 ```{r}
 
+set.seed(1234)
+null_dist_movies <- movies_hypo %>%
+  # specify variables
+  specify(rating ~ director) %>%
+  
+  # assume independence, i.e, there is no difference
+  hypothesize(null = "independence") %>%
+  
+  # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
+  calculate(stat = "diff in means", order = c("Steven Spielberg", "Tim Burton"))
+
+null_dist_movies %>% 
+  visualise()+
+  shade_p_value(obs_stat = diff, direction = "two-sided")
+
+p_value <- null_dist_movies %>% 
+  get_pvalue(obs_stat = diff, direction="both")
+
+p_value
+
 ```
+
 
 # Omega Group plc- Pay Discrimination
 
