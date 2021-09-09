@@ -365,22 +365,14 @@ null_dist_movies <- movies_hypo %>%
   calculate(stat = "diff in means", order = c("Steven Spielberg", "Tim Burton"))
 
 null_dist_movies %>% 
-  visualise()
+  visualise()+
+  shade_p_value(obs_stat = diff, direction = "two-sided")
 
-# Warning: Please be cautious in reporting a p-value of 0. This result is an approximation based on the number of `reps` chosen in the `generate()` step.
 p_value <- null_dist_movies %>% 
   get_pvalue(obs_stat = diff, direction="both")
 
-ggplot(data = null_dist_movies, aes(x = stat)) +
-  geom_histogram(binwidth = 0.1)+
-  NULL
-```
-```{r}
-null_dist_movies %>% visualize() +
-  shade_p_value(obs_stat = diff, direction = "two-sided")
+p_value
 
-null_dist %>%
-  get_p_value(obs_stat = diff, direction = "two_sided")
 ```
 
 
