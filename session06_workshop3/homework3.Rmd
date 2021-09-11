@@ -327,6 +327,7 @@ movies_comp %>%
        subtitle = "95% confidence interval overlap",
        x = "Mean IMDB Rating") +
   NULL
+
 ```
 
 In addition, you will run a hpothesis test. You should use both the `t.test` command and the `infer` package to simulate from a null distribution, where you assume zero difference between the two.
