@@ -318,9 +318,9 @@ movies_comp %>%
   ggplot(mapping = aes(x=mean_rating,y=fct_relevel(director, levels=c("Tim Burton","Steven Spielberg"))))+
   geom_point(size = 5, mapping = aes(color = director))+
   geom_errorbar(aes(xmin = rating_low, xmax = rating_high, color = director), width = 0.1,size = 1.5)+
-  ggrepel::geom_text_repel(aes(x=mean_rating, label = round(mean_rating, 2))) +
-  ggrepel::geom_text_repel(aes(x=rating_low, label = round(rating_low, 2))) +
-  ggrepel::geom_text_repel(aes(x=rating_high, label = round(rating_high, 2))) +
+  ggrepel::geom_text_repel(aes(x=mean_rating, label = round(mean_rating, 2)), size=10, position = position_dodge(0.9)) +
+  ggrepel::geom_text_repel(aes(x=rating_low, label = round(rating_low, 2)),size = 5, position = position_dodge(0.9)) +
+  ggrepel::geom_text_repel(aes(x=rating_high, label = round(rating_high, 2)),size = 5, position = position_dodge(0.9)) +
   # geom_text(aes(label = round(mean_rating,digits=2)), position = position_dodge(0.9),vjust=-2,size = 10)+
   geom_rect(xmin = 7.27,xmax = 7.33, ymin=0, ymax=Inf, alpha=0.4)+
   labs(title = "Do Spielberg and Burton have the same mean IMDB ratings?",
