@@ -457,15 +457,20 @@ approval_polllist <- read_csv('https://projects.fivethirtyeight.com/biden-approv
 
 glimpse(approval_polllist)
 
-approval_polllist_tidy <- approval_polllist %>% 
-  mutate(model_date=ymd(modeldate),
-         start_date = ymd(startdate),
-         end_date = ymd(enddate))
-
-view(approval_polllist_tidy)
-
-
 # Use `lubridate` to fix dates, as they are given as characters.
+
+approval_polllist <- approval_polllist %>%
+  mutate(modeldate = mdy(modeldate))
+
+approval_polllist <- approval_polllist %>%
+  mutate(startdate = mdy(startdate))
+
+approval_polllist <- approval_polllist %>%
+  mutate(enddate = mdy(enddate))
+
+approval_polllist <- approval_polllist %>%
+  mutate(createddate = mdy(createddate))
+
 ```
 
 ## Create a plot
@@ -473,6 +478,51 @@ view(approval_polllist_tidy)
 What I would like you to do is to calculate the average net approval rate (approve- disapprove) for each week since he got into office. I want you plot the net approval, along with its 95% confidence interval. There are various dates given for each poll, please use `enddate`, i.e., the date the poll ended.
 
 Also, please add an orange line at zero. Your plot should look like this:
+``` {r trump_margins, echo=FALSE, out.width="100%"}
+
+# Calculating net approval rates per poll and grouping by week 
+approval_polls <- approval_polllist %>% 
+  mutate(net_approval_rate = adjusted_approve - adjusted_disapprove) %>%
+  mutate(enddate_week = isoweek(enddate)) %>%
+  group_by(enddate_week) %>%
+  summarise(average_net = mean(net_approval_rate))
+
+
+# Confidence Interval (CI) using the formula mean +- t_critical * SE
+polls_formula_ci <- approval_polls %>% 
+  mutate(avg_rate = mean(net_approval_rate, na.rm=TRUE)) %>%
+  summarise(avg_rate = mean(net_approval_rate, na.rm=TRUE),
+            sd_rate = sd(net_approval_rate, na.rm=TRUE),
+            count = n(),
+            #get T-critical value with (n-l) degrees of freedom
+            se_rate = sd_rate/sqrt(count),
+            t_critical = qt(0.975, count-1),
+            margin_of_error = t_critical * se_rate,
+            rate_low = net_approval_rate - margin_of_error,
+            rate_high = net_approval_rate + margin_of_error) +
+            NULL
+
+
+plot <- approval_polls %>% 
+  ggplot(aes(x=enddate_week, y=average_net)) +
+  geom_point()+
+  geom_line()+
+  geom_smooth(color="blue") +
+  geom_ribbon(ymin=rate_low, ymax=rate_high) +
+    #change to theme_bw() to have white background + black frame around plot
+  theme_bw() +
+  labs (title = "Net Biden Approval/Dissaproval Weekly",
+    y = "Net Approval Rate") +
+    geom_hline(yintercept = 0, color="orange") +
+    NULL
+
+
+#plot <- plot+geom_ribbon(aes(ymin=data$lower, ymax=data$upper), linetype=2, alpha=0.1)
+plot 
+
+```
+
+
 
 ```{r trump_margins, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "biden_approval_margin.png"), error = FALSE)
