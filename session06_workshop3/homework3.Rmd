@@ -546,9 +546,8 @@ knitr::include_graphics(here::here("images", "covid_death_rate_comorbidities.png
 knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error = FALSE)
 ```
 
-To do this, you will have to think what dplyr verbs to use to select, filter, group_by, etc. You will then use the example shown in <https://mam2022.netlify.app/reference/reference_sql/#establish-a-connection-with-the-sqlite-database-1> to use dplyr, dbplyr, and ggplot to produce these graphs.
 
-```{r try to load datasets}
+```{r try to load datasets, messages=FALSE}
 
 
 # more details and examples on connecting to an SQL database can be found at 
@@ -583,8 +582,15 @@ cdc_data <- dplyr::tbl(cdc_db, "cdc")
 # thn visualisations
 
 query1 <- cdc_data %>%
-  filter(death_yn %in% c("Yes","No") & !age_group %in% c("Missing","NA") & sex %in% c("Male","Female")) %>% 
-  group_by(age_group,sex, death_yn) %>% 
+  filter(death_yn %in% c("Yes","No") &
+           !age_group %in% c("Missing","NA") &
+           sex %in% c("Male","Female") &
+           medcond_yn %in% c("Yes","No")) %>% 
+  mutate(medcond_yn = case_when(
+    medcond_yn == "Yes" ~ "With Comorbidities",
+    medcond_yn == "No" ~ "Without Comorbidities"
+  )) %>% 
+  group_by(age_group, sex, death_yn, medcond_yn) %>% 
   summarise(count=n())
   
   
@@ -601,11 +607,31 @@ query1_tibble <- query1 %>%
 # calculate death rate
 query1_tibble %>% 
   pivot_wider(names_from = death_yn,values_from=count) %>% 
-  mutate(death_rate = Yes/(No+Yes))
+  mutate(death_rate = Yes/(No+Yes)) %>% 
+  # bar plot
+  ggplot(aes(x=death_rate,y=age_group))+
+  geom_col(fill="steelblue4")+
+  # data label
+  geom_text(aes(label = round(death_rate*100,1),hjust=0))+
+  # 2x2 grid faceting
+  facet_grid(medcond_yn ~ sex) +
+  # x axis in %
+  scale_x_continuous(label=scales::percent_format(accuracy = 1))+
+  theme_bw()+
+  labs()+
+  NULL
+  
 
 query2 <- cdc_data %>%
-  filter(icu_yn %in% c("Yes","No") & !age_group %in% c("Missing","NA") & sex %in% c("Male","Female")) %>% 
-  group_by(age_group,sex, icu_yn) %>% 
+  filter(icu_yn %in% c("Yes","No") & 
+           !age_group %in% c("Missing","NA") & 
+           sex %in% c("Male","Female") &
+           death_yn %in% c("Yes","No")) %>% 
+  mutate(icu_yn = case_when(
+    icu_yn == "Yes" ~ "ICU Admission",
+    icu_yn == "No" ~ "No ICU Admission"
+  )) %>% 
+  group_by(age_group, sex, icu_yn, death_yn) %>% 
   summarise(count=n())
 
 query2_tibble <- query2 %>% 
@@ -613,8 +639,20 @@ query2_tibble <- query2 %>%
 
 # calculate icu rate
 query2_tibble %>% 
-  pivot_wider(names_from = icu_yn,values_from=count) %>% 
-  mutate(icu_rate = Yes/(No+Yes))
+  pivot_wider(names_from = death_yn, values_from=count) %>% 
+  mutate(death_rate = Yes/(No+Yes))%>% 
+  # bar plot
+  ggplot(aes(x=death_rate,y=age_group))+
+  geom_col(fill="salmon1")+
+  # data label
+  geom_text(aes(label = round(death_rate*100,1),hjust=0))+
+  # 2x2 grid faceting
+  facet_grid(icu_yn ~ sex) +
+  # x axis in %
+  scale_x_continuous(label=scales::percent_format(accuracy = 1))+
+  theme_bw()+
+  labs()+
+  NULL
   
 ```
 
