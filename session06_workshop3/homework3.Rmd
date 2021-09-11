@@ -318,6 +318,7 @@ movies_comp %>%
   ggplot(mapping = aes(x=mean_rating,y=fct_relevel(director, levels=c("Tim Burton","Steven Spielberg"))))+
   geom_point(size = 5, mapping = aes(color = director))+
   geom_errorbar(aes(xmin = rating_low, xmax = rating_high, color = director), width = 0.1,size = 1.5)+
+
   ggrepel::geom_text_repel(aes(x=mean_rating, label = round(mean_rating, 2)), size=10, position = position_dodge(0.9)) +
   ggrepel::geom_text_repel(aes(x=rating_low, label = round(rating_low, 2)),size = 5, position = position_dodge(0.9)) +
   ggrepel::geom_text_repel(aes(x=rating_high, label = round(rating_high, 2)),size = 5, position = position_dodge(0.9)) +
@@ -327,7 +328,7 @@ movies_comp %>%
        subtitle = "95% confidence interval overlap",
        x = "Mean IMDB Rating") +
   NULL
-
+  
 ```
 
 In addition, you will run a hpothesis test. You should use both the `t.test` command and the `infer` package to simulate from a null distribution, where you assume zero difference between the two.
