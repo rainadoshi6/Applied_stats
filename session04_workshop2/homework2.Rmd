@@ -372,26 +372,21 @@ The 95% confidence interval for the proportion of bachelors and graduates that d
 
 ## Email usage
 
-We estimated the *population* parameter on time spent on email weekly.
-
-1. Create a new variable called `email` that combines `emailhr` and `emailmin` to reports the number of minutes the respondents spend on email weekly.
-1. Visualise the distribution of this new variable. Find the mean and the median number of minutes respondents spend on email weekly. Is the mean or the median a better measure of the typical amount of time Americans spend on email weekly? Why?
+Next we estimated the *population* parameter on time spent on email weekly.
 
 The mean of the number of minutes spent on email weekly is 417 minutes and the median is 120 minutes. The median is a better measure of the typical amount of time Americans spent on email weekly as the mean is substantially increased due to the outliers of extremely high email usage. Multiple individuals claimed to spend more than 4000 minutes on email weekly which skews the mean higher. The median is a more accurate representation of typical usage as it isn't affected by the outliers. 
 
-1. Using the `infer` package, calculate a 95% bootstrap confidence interval for the mean amount of time Americans spend on email weekly. Interpret this interval in context of the data, reporting its endpoints in “humanized” units (e.g. instead of 108 minutes, report 1 hr and 8 minutes). If you get a result that seems a bit odd, discuss why you think this might be the case.
-
 The 95% CI for the mean weekly email time is 6 hours and 25 minutes to 7 hours and 33 minutes. There does not seem to be an odd result. The mean of the dataset is 6hrs and 57 minutes which falls into this CI.
 
-1. Would you expect a 99% confidence interval to be wider or narrower than the interval you calculated above? Explain your reasoning.
 One would expect a 99% confidence interval to be wider than the 95% CI. This is because to be more certain about the values of the mean weekly email time it is necessary to increase the range and hence have a wider interval. Also mathematically the t-critical value is larger and hence the CI is wider.
 
 
 ```{r}
 set.seed(1234)
+#Converts email hr and email min into one variable called email
 gss <- gss %>%
   mutate(email = as.numeric(emailhr) * 60 + as.numeric(emailmin))
-
+#Creates histogram showing the distribution of email
 gss %>%
   ggplot(aes(x=email)) +
   geom_histogram() + labs(title = "Histogram of Time spent on email",
@@ -399,7 +394,7 @@ gss %>%
 
 gss %>% summarise(meanEmail = mean(email, na.rm=TRUE),
                   medianEmail = median(email, na.rm=TRUE))
-
+#Bootstrap creating a 95% confidence interval for the mean weekly email usage.
 boot_email <- gss %>%
   specify(response = email) %>%
   generate(reps = 1000, type = "bootstrap") %>%
@@ -407,14 +402,15 @@ boot_email <- gss %>%
   get_confidence_interval(level = 0.95, type = "percentile")
 
 boot_email
-hours = boot_email%/%60
-minutes = round(boot_email%%60)
+hours = boot_email%/%60 #Calculates the hours using integer division (61 minutes will give 1 hour)
+minutes = round(boot_email%%60) # Calculates hours using modulus division (getting remainder) (61 min will give 1 minute)
 
-paste(hours, "hours", minutes, "minutes")
+paste(hours, "hours", minutes, "minutes") # function to paste the values for the confidence interval: "6 hours 25 minutes" "7 hours 33 minutes"
 
-# The 
 
-# wider
+
+# wider 
+#Bootstrap creating a 99% confidence interval for the mean weekly email usage.
 # boot_email2 <- gss %>%
 #   specify(response = email) %>%
 #   generate(reps = 1000, type = "bootstrap") %>%
