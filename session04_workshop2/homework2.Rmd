@@ -48,12 +48,10 @@ library(infer)
 
 # Climate change and temperature anomalies 
 
+We want to analyse the climate change in the period between 1951-1980
 
-If we wanted to study climate change, we can find data on the *Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies* in the Northern Hemisphere at [NASA's Goddard Institute for Space Studies](https://data.giss.nasa.gov/gistemp). The [tabular data of temperature anomalies can be found here](https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.txt)
+First, we load the data from *Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies* in the Northern Hemisphere at [NASA's Goddard Institute for Space Studies](https://data.giss.nasa.gov/gistemp). The [tabular data of temperature anomalies can be found here](https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.txt)
 
-To define temperature anomalies you need to have a reference, or base, period which NASA clearly states that it is the period between 1951-1980.
-
-Run the code below to load the file:
 
 ```{r weather_data, cache=TRUE}
 
@@ -63,21 +61,7 @@ weather <-
            na = "***")
 
 ```
-
-Notice that, when using this function, we added two options: `skip` and `na`.
-
-1. The `skip=1` option is there as the real data table only starts in Row 2, so we need to skip one row. 
-1. `na = "***"` option informs R how missing observations in the spreadsheet are coded. When looking at the spreadsheet, you can see that missing data is coded as "***". It is best to specify this here, as otherwise some of the data is not recognized as numeric data.
-
-Once the data is loaded, notice that there is a object titled `weather` in the `Environment` panel. If you cannot see the panel (usually on the top-right), go to `Tools` > `Global Options` > `Pane Layout` and tick the checkbox next to `Environment`. Click on the `weather` object, and the dataframe will pop up on a seperate tab. Inspect the dataframe.
-
-For each month and year, the dataframe shows the deviation of temperature from the normal (expected). Further the dataframe is in wide format. 
-
-You have two objectives in this section:
-
-1. Select the year and the twelve month variables from the `weather` dataset. We do not need the others (J-D, D-N, DJF, etc.) for this assignment. Hint: use `select()` function.
-
-1. Convert the dataframe from wide to 'long' format. Hint: use `gather()` or `pivot_longer()` function. Name the new dataframe as `tidyweather`, name the variable containing the name of the month as `month`, and the temperature deviation values as `delta`.
+We modified the data by adding `skip` and `na`, and we select the year and the twelve month variables from the dataset while deleting the rest as they are non-relevant. 
 
 
 ```{r tidyweather}
@@ -86,65 +70,59 @@ tidyweather <- weather %>%  select(1:13) %>% pivot_longer(cols=2:13, names_to = 
 tidyweather
 
 ```
-
-Inspect your dataframe. It should have three variables now, one each for 
-
-1. year, 
-1. month, and 
-1. delta, or temperature deviation.
+Now we inspect the dataframe, it has three columns indicating the Year, Month and the delta value of climate change which shows how much the temperature varys from the base year.
 
 ## Plotting Information
 
-Let us plot the data using a time-series scatter plot, and add a trendline. To do that, we first need to create a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
+We plot the data using a time-series scatter plot, and have added a trendline. We first created a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
 
 
-> In the following chunk of code, I used the `` argument, which does not run a chunk of code; I did so that you can knit the document before tidying the data and creating a new dataframe `tidyweather`. When you actually want to run this code and knit your document, you must delete ``, **not just here but in all chunks were `` appears.**
 
-
-```{r scatter_plot}
-
+```{r scatter_plot,warning=FALSE}
+# convert the date time datatype
 tidyweather <- tidyweather %>%
   mutate(date = ymd(paste(as.character(Year), Month, "1")),
          month = month(date, label=TRUE),
          year = year(date))
 
+# plotting the scatter plot of the data
 ggplot(tidyweather, aes(x=date, y = delta))+
   geom_point()+
   geom_smooth(color="red") +
   theme_bw() +
   labs (
-    title = "Weather Anomalies"
-  )
-
-```
-
-Is the effect of increasing temperature more pronounced in some months? Use `facet_wrap()` to produce a seperate scatter plot for each month, again with a smoothing line. Your chart should human-readable labels; that is, each month should be labeled "Jan", "Feb", "Mar" (full or abbreviated month names are fine), not `1`, `2`, `3`. 
-
-
-
-```{r facet_wrap, echo=FALSE}
-
-
-tidyweather <- tidyweather %>%
-  mutate(date = ymd(paste(as.character(Year), Month, "1")),
-         month = month(date, label=TRUE),
-         year = year(date))
-
-ggplot(tidyweather, aes(x=date, y = delta))+
-  geom_point()+
-  geom_smooth(color="red") +
-  theme_bw() +
-  labs (
-    title = "Weather Anomalies"
+    title = "Weather Anomalies",
+    x = "Date",
+    y = "Temperature deviation"
   )+
-  facet_wrap(~month)
+  NULL
 
 ```
 
+Now we will visualize the data in a per-month basis, to see if the effect of increasing temperature is more pronounced in some months than others.  
 
-It is sometimes useful to group data into different time periods to study historical data. For example, we often refer to decades such as 1970s, 1980s, 1990s etc. to refer to a period of time. NASA calcuialtes a temperature anomaly, as difference form the base period of 1951-1980. The code below creates a new data frame called `comparison` that groups data in five time periods: 1881-1920, 1921-1950, 1951-1980, 1981-2010 and 2011-present. 
+```{r facet_wrap, warning=FALSE}
+#plotting the by-month scatter plot of data
+ggplot(tidyweather, aes(x=date, y = delta))+
+  geom_point()+
+  geom_smooth(color="red") +
+  geom_hline(yintercept = 0, color="orange")+
+  theme_bw() +
+  labs (
+    title = "Weather Anomalies",
+    x = "Date",
+    y = "Temperature deviation"
+  )+
+  facet_wrap(~month)+
+  NULL
 
-We remove data before 1800 and before using `filter`. Then, we use the `mutate` function to create a new variable `interval` which contains information on which period each observation belongs to. We can assign the different periods using `case_when()`.
+```
+From the above chart we can see the temperature deviation is smaller from May to August as the data points are less spread out on the y axis.
+
+
+To study the historical data, we find it useful to group data into different time periods. Therefore, we created a new data frame called `comparison` that groups data in five time periods: 1881-1920, 1921-1950, 1951-1980, 1981-2010 and 2011-present. 
+
+We removed data before 1800 and before using `filter`. Then, we use the `mutate` function to create a new variable `interval` which contains information on which period each observation belongs to. We can assign the different periods using `case_when()`.
 
 
 ```{r intervals}
@@ -162,12 +140,12 @@ comparison <- tidyweather %>%
 
 ```
 
-Inspect the `comparison` dataframe by clicking on it in the `Environment` pane.
+By clicking on it in the `Environment` pane, we inpected the dataframe and it has 7 columns: Year, Month, delta, date, month, year, interval which we just created.
 
-Now that we have the `interval` variable, we can create a density plot to study the distribution of monthly deviations (`delta`), grouped by the different time periods we are interested in. Set `fill` to `interval` to group and colour the data by different time periods.
+Now that we have the `interval` variable, we can create a density plot to study the distribution of monthly deviations (`delta`), grouped by the different time periods we are interested in. 
 
 ```{r density_plot}
-
+# Set `fill` to `interval` to group and colour the data by different time periods.
 ggplot(comparison, aes(x=delta, fill=interval))+
   geom_density(alpha=0.2) +   #density plot with tranparency set to 20%
   theme_bw() +                #theme
@@ -177,8 +155,10 @@ ggplot(comparison, aes(x=delta, fill=interval))+
   )
 
 ```
+From this we can see that as time goes by, the average delta of climate change increases from negative to positive, indicating the temperature is increasing. We can also see the temperature is increasing at a larger rate since 1951.
 
-So far, we have been working with monthly anomalies. However, we might be interested in average annual anomalies. We can do this by using `group_by()` and `summarise()`, followed by a scatter plot to display the result. 
+
+We are also interested in average annual anomalies, therefore we further modified the data to produce a scatter plot as below:
 
 ```{r averaging}
 
@@ -207,6 +187,7 @@ ggplot(average_annual_anomaly, aes(x=Year, y= annual_average_delta))+
 
 ```
 
+As we can see from the plot, it corresponds to our earlier conclusion that the temperature is increasing at a larger rate starting significantly since 1960s.
 
 ## Confidence Interval for `delta`
 
@@ -214,7 +195,7 @@ ggplot(average_annual_anomaly, aes(x=Year, y= annual_average_delta))+
 
 > A one-degree global change is significant because it takes a vast amount of heat to warm all the oceans, atmosphere, and land by that much. In the past, a one- to two-degree drop was all it took to plunge the Earth into the Little Ice Age.
 
-Your task is to construct a confidence interval for the average annual delta since 2011, both using a formula and using a bootstrap simulation with the `infer` package. Recall that the dataframe `comparison` has already grouped temperature anomalies according to time intervals; we are only interested in what is happening  between 2011-present.
+We want to construct a confidence interval for the average annual delta since 2011, both using a formula and using a bootstrap simulation with the `infer` package. Recall that the dataframe `comparison` has already grouped temperature anomalies according to time intervals; we are only interested in what is happening  between 2011-present.
 
 ```{r, calculate_CI_using_formula, }
 
@@ -227,9 +208,6 @@ formula_ci <- comparison %>% filter(interval =="2011-present") %>%
             margin_of_error = t_critical * se_delta,
             delta_low = annual_average_delta - margin_of_error,
             delta_high = annual_average_delta + margin_of_error)
-
-    
-  
 
   # choose the interval 2011-present
   # what dplyr verb will you use? 
@@ -266,9 +244,8 @@ boot_delta
 
 ```
 
-> What is the data showing us? Please type your answer after (and outside!) this blockquote. You have to explain what you have done, and the interpretation of the result. One paragraph max, please!
-
 First we filtered out the years to include only 2011-present. Then we calculated summary statistics including the mean,sd,se and from this we calculated the confidence interval.
+
 Using both the bootstrap method and the formula method we got a 95% confidence interval for delta as (1.01,1.11). This means that we are 95% confident that the true mean for 2011-present for delta lies within the range of (1.01,1.11). We can confirm that there is a net increase in temperature since the base year.
 
 
@@ -277,7 +254,7 @@ Using both the bootstrap method and the formula method we got a 95% confidence i
 The [General Social Survey (GSS)](http://www.gss.norc.org/) gathers data on American society in order to monitor and explain trends in attitudes, behaviours, and attributes. Many trends have been tracked for decades, so one can see the evolution of attitudes, etc in American Society.
 
 
-In this assignment we analyze data from the **2016 GSS sample data**, using it to estimate values of *population parameters* of interest about US adults. The GSS sample data file has 2867 observations of 935 variables, but we are only interested in very few of these variables and you are using a smaller file.
+We analyzed data from the **2016 GSS sample data**, using it to estimate values of *population parameters* of interest about US adults. The GSS sample data file has 2867 observations of 935 variables, but we are only interested in very few of these variables and therefore we filtered the data into a smaller file.
 
 
 ```{r, read_gss_data, cache=TRUE}
@@ -286,7 +263,7 @@ gss <- read_csv(here::here("data", "smallgss2016.csv"),
                        "No answer", "Not applicable"))
 ```
 
-You will also notice that many responses should not be taken into consideration, like "No Answer", "Don't Know", "Not applicable", "Refused to Answer".
+We noticed that many responses should not be taken into consideration, like "No Answer", "Don't Know", "Not applicable", "Refused to Answer".
 
 We will be creating 95% confidence intervals for population parameters. The variables we have are the following:
 
@@ -297,22 +274,23 @@ We will be creating 95% confidence intervals for population parameters. The vari
 
 ## Instagram and Snapchat, by sex
 
-Can we estimate the *population* proportion of Snapchat or Instagram users in 2016?
-
-
+We would like to estimate the *population* proportion of Snapchat or Instagram users in 2016, by following the below steps:
 
 1. Create a  new variable, `snap_insta` that is *Yes* if the respondent reported using any of Snapchat (`snapchat`) or Instagram (`instagrm`), and *No* if not. If the recorded value was NA for both of these questions, the value in your new variable should also be NA.
-1. Calculate the proportion of Yes’s for `snap_insta` among those who answered the question, i.e. excluding NAs.
-1. Using the CI formula for proportions, please construct 95% CIs for men and women who used either Snapchat or Instagram
+
+2. Calculate the proportion of Yes’s for `snap_insta` among those who answered the question, i.e. excluding NAs.
+
+3. Using the CI formula for proportions, please construct 95% CIs for men and women who used either Snapchat or Instagram
 
 
 ```{r}
+#Step 1
 gss<-gss %>% mutate(snap_insta = case_when(
   (snapchat =="Yes" | instagrm == "Yes") ~ "Yes",
   (snapchat =="No" & instagrm == "No") ~ "No",
   T ~ "NA"))
-# rows_without_na <- gss %>%  filter(snap_insta != "NA") %>% nrow()
 
+#Step 2
 gss %>% 
   filter(!snap_insta == "NA") %>% 
   count(snap_insta, sort=TRUE) %>% 
@@ -320,8 +298,9 @@ gss %>%
 
 # se for proportion = sqrt (P*(1-P)/n)
 
+#Step 3
 se_prop = sqrt(
-  0.625 * 0.375 / 514
+  0.625 * 0.375 / (514+858)
 )
 
 conf_low <-  0.375 - 1.96 * se_prop
@@ -329,29 +308,26 @@ conf_high <- 0.375 + 1.96 * se_prop
 
 conf_high
 conf_low
-#the true proportion of insta or snap users falls between 0.333 and 0.417
-# gss %>% 
-#   filter(snap_insta=="Yes")%>%
-#   summarise(proportion_SorI= n()/rows_without_na)
 
 
 
   
 ```
 
+We are 95% confident that the true proportion of instagram or snap users falls between 0.349 and 0.401. 
+
 ## Twitter, by education level
 
-Can we estimate the *population* proportion of Twitter users by education level in 2016?. 
+Next, we estimated the *population* proportion of Twitter users by education level in 2016. 
 
-There are 5 education levels in variable `degree` which, in ascneding order of years of education, are Lt high school, High School, Junior college, Bachelor, Graduate. 
 
-1. Turn `degree` from a character variable into a factor variable. Make sure the order is the correct one and that levels are not sorted alphabetically which is what R by default does. 
-1. Create a  new variable, `bachelor_graduate` that is *Yes* if the respondent has either a `Bachelor` or `Graduate` degree. As before, if the recorded value for either was NA, the value in your new variable should also be NA.
-1. Calculate the proportion of `bachelor_graduate` who do (Yes) and who don't (No) use twitter. 
-1. Using the CI formula for proportions, please construct two 95% CIs for `bachelor_graduate` vs whether they use (Yes) and don't (No) use twitter. 
+1. Calculate the proportion of `bachelor_graduate` who do (Yes) and who don't (No) use twitter.
+1. Using the CI formula for proportions, please construct two 95% CIs for `bachelor_graduate` vs whether they use (Yes) and don't (No) use twitter.
 1. Do these two Confidence Intervals overlap?
 
 ```{r}
+#Turn `degree` from a character variable into a factor variable
+#Create a  new variable, `bachelor_graduate` to indicate if the respondent is bachelor or graduate
 gss <- gss %>%  
   mutate(degree = factor(degree, levels=c("Lt high school","High school", "Junior college", "Bachelor", "Graduate")),
                        bachelor_graduate = case_when(
@@ -359,17 +335,19 @@ gss <- gss %>%
   (degree != "Bachelor" & degree != "Graduate") ~ "No",
   T ~ "NA"))
 
+#Calculate the proportion of `bachelor_graduate` who do (Yes) and who don't (No) use twitter
 gss %>% filter(bachelor_graduate == "Yes") %>%
   filter(twitter != "NA") %>%
   count(twitter, sort=TRUE) %>% 
   mutate(prop = n/sum(n))
 
+#Using the CI formula for proportions
 se_prop_usetwitter = sqrt(
-  0.767 * 0.233 / 114
+  0.767 * 0.233 / (114+375)
 )
 
 se_prop_notwitter = sqrt(
-  0.767 * 0.233 / 375
+  0.767 * 0.233 / (375+144)
 )
 
 
@@ -379,23 +357,22 @@ conf_high_usetwitter <- 0.233 + qt(0.975, 113) * se_prop_usetwitter
 conf_low_notwitter <-  0.767 - qt(0.975, 374) * se_prop_notwitter
 conf_high_notwitter <- 0.767 + qt(0.975, 374) * se_prop_notwitter
 
-#The 95% confidence interval for the proportion of bachelors and graduates that do not 
-# use twitter is 0.724 to 0.81
+
 conf_low_notwitter
 conf_high_notwitter
 
-#The 95% confidence interval for the proportion of bachelors and graduates that do  
-# use twitter is 0.155 to 0.311
 conf_low_usetwitter
 conf_high_usetwitter
 
 
 ```
+The 95% confidence interval for the proportion of bachelors and graduates that do not use twitter is 0.731 to 0.803.
 
+The 95% confidence interval for the proportion of bachelors and graduates that do use twitter is 0.195 to 0.271.
 
 ## Email usage
 
-Can we estimate the *population* parameter on time spent on email weekly?
+We estimated the *population* parameter on time spent on email weekly.
 
 1. Create a new variable called `email` that combines `emailhr` and `emailmin` to reports the number of minutes the respondents spend on email weekly.
 1. Visualise the distribution of this new variable. Find the mean and the median number of minutes respondents spend on email weekly. Is the mean or the median a better measure of the typical amount of time Americans spend on email weekly? Why?
