@@ -1,6 +1,6 @@
 ---
 title: "Session 6: Homework 3"
-author: "Your name goes here"
+author: "MAM Group 5"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -43,7 +43,10 @@ library(infer)
 library(openintro)
 library(readr)
 library(dplyr)
-
+library(RSQLite)
+library(dbplyr)
+library(DBI)
+library(janitor)
 
 ```
 
@@ -523,7 +526,7 @@ Using your data manipulation and visualisation skills, please use the Brexit res
 knitr::include_graphics(here::here("images", "brexit.png"), error = FALSE)
 ```
 
-# Challenge 1: CDC COVID-19 Public Use Data
+# Challenge 2: CDC COVID-19 Public Use Data
 
 The [CDC Covid-19 Case Surveillance Data](https://data.cdc.gov/Case-Surveillance/COVID-19-Case-Surveillance-Public-Use-Data/vbim-akqf) is a case surveillance public use dataset with 12 elements for all COVID-19 cases shared with CDC and includes demographics, any exposure history, disease severity indicators and outcomes, presence of any underlying medical conditions and risk behaviors. You can see the variables from
 
@@ -541,16 +544,79 @@ knitr::include_graphics(here::here("images", "covid_death_rate_comorbidities.png
 knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error = FALSE)
 ```
 
-```{r try to load datasets, eval=FALSE}
-install.packages("RSocrata")
-library(RSocrata)
-cdc <- read.socrata("https://data.cdc.gov/resource/vbim-akqf.csv")
-```
-
-
 To do this, you will have to think what dplyr verbs to use to select, filter, group_by, etc. You will then use the example shown in <https://mam2022.netlify.app/reference/reference_sql/#establish-a-connection-with-the-sqlite-database-1> to use dplyr, dbplyr, and ggplot to produce these graphs.
 
-# Challenge 2:GDP components over time and among countries
+```{r try to load datasets}
+
+
+# more details and examples on connecting to an SQL database can be found at 
+# https://mam2022.netlify.app/reference/reference_sql/
+
+# set up a connection to sqlite database. 
+# make sure the database file is in your working directory-- 
+# put it at the root of am01
+
+my_path <- "/Users/gaoyuan/Downloads/cdc_data.db"
+
+cdc_db <- DBI::dbConnect(
+  drv = RSQLite::SQLite(),
+  dbname = my_path
+)
+
+# browse the tables in the database using DBI::dbListTables()
+DBI::dbListTables(cdc_db)
+
+# We can easily set these tables up as database objects using dplyr
+cdc_data <- dplyr::tbl(cdc_db, "cdc")
+
+
+
+# ************************
+# You need to calculate Covid death % by age group, sex 
+# and presence of co-morbidities (query1) and Covid death % 
+# by age group, sex and ICU admission (query2) 
+
+# rather than loading the entire file in memory, you will use dplyr+SQL,
+# to generate a smaller dataset that you will use for your calculations and
+# thn visualisations
+
+query1 <- cdc_data %>%
+  filter(death_yn %in% c("Yes","No") & !age_group %in% c("Missing","NA") & sex %in% c("Male","Female")) %>% 
+  group_by(age_group,sex, death_yn) %>% 
+  summarise(count=n())
+  
+  
+# query1 is a list of database connection, operations, sql
+class(query1)
+
+# Generate actual SQL commands: We can either use dbplyr::sql_render() or dplyr::show_query()
+dbplyr::sql_render(query1)
+
+# execute query and retrieve results in a tibble (dataframe). 
+query1_tibble <- query1 %>% 
+  collect() # collect runs the SQL query and returns the output of your dplyr pipe sequence
+
+# calculate death rate
+query1_tibble %>% 
+  pivot_wider(names_from = death_yn,values_from=count) %>% 
+  mutate(death_rate = Yes/(No+Yes))
+
+query2 <- cdc_data %>%
+  filter(icu_yn %in% c("Yes","No") & !age_group %in% c("Missing","NA") & sex %in% c("Male","Female")) %>% 
+  group_by(age_group,sex, icu_yn) %>% 
+  summarise(count=n())
+
+query2_tibble <- query2 %>% 
+  collect()
+
+# calculate icu rate
+query2_tibble %>% 
+  pivot_wider(names_from = icu_yn,values_from=count) %>% 
+  mutate(icu_rate = Yes/(No+Yes))
+  
+```
+
+# Challenge 3:GDP components over time and among countries
 
 At the risk of oversimplifying things, the main components of gross domestic product, GDP are personal consumption (C), business investment (I), government spending (G) and net exports (exports - imports). You can read more about GDP and the different approaches in calculating at the [Wikipedia GDP page](https://en.wikipedia.org/wiki/Gross_domestic_product).
 
@@ -566,27 +632,32 @@ UN_GDP_data  <-  read_excel(here::here("data", "Download-GDPconstant-USD-countri
 
 The first thing you need to do is to tidy the data, as it is in wide format and you must make it into long, tidy format. Please express all figures in billions (divide values by `1e9`, or $10^9$), and you want to rename the indicators into something shorter.
 
-> make sure you remove `eval=FALSE` from the next chunk of R code-- I have it there so I could knit the document
-
-```{r reshape_GDP_data, eval=FALSE}
+```{r reshape_GDP_data}
+# check unique values of IndicatorName
+unique(UN_GDP_data$IndicatorName)
 
 tidy_GDP_data  <- UN_GDP_data %>% 
   pivot_longer(cols = 4:51, names_to = "year", values_to = "volume") %>% 
-  mutate(volume_bn = volume / 10^9, indicator = case_when (
+  mutate(volume_bn = volume / 10^9, IndicatorName = case_when (
     IndicatorName == "Household consumption expenditure (including Non-profit institutions serving households)" ~ "Household expenditure",
     IndicatorName == "Exports of goods and services" ~ "Exports",
     IndicatorName == "Imports of goods and services" ~ "Imports",
-    IndicatorName == "General government final consumption expenditure" ~ "Government expenditure",T~"NA")) %>% 
-  filter(indicator!="NA")
+    IndicatorName == "General government final consumption expenditure" ~ "Government expenditure",
+    IndicatorName == "Gross capital formation" ~ "Gross capital formation",
+    IndicatorName == "Gross Domestic Product (GDP)" ~ "Gross Domestic Product",
+    T~"Others")) %>% 
+  filter(IndicatorName!="Others")
 
 glimpse(tidy_GDP_data)
 
 
 # Let us compare GDP components for these 3 countries
 country_list <- c("United States","India", "Germany")
-tidy_GDP_country <- tidy_GDP_data %>% filter (Country %in% country_list)
+tidy_GDP_country <- tidy_GDP_data %>% 
+  filter (Country %in% country_list)
 
-tidy_GDP_country
+head(tidy_GDP_country)
+
 ```
 
 First, can you produce this plot?
@@ -594,10 +665,19 @@ First, can you produce this plot?
 ```{r gdp1, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "gdp1.png"), error = FALSE)
 ```
+
 ```{r}
-# ggplot(tidy_GDP_country,aes(x=year,y=volume_bn,color = indicator))+
-#   geom_line()+
-#   facet_wrap(~Country)
+tidy_GDP_country %>% 
+  filter(IndicatorName!="Gross Domestic Product") %>% 
+  ggplot(aes(x=as.numeric(year),y=volume_bn, 
+             color = IndicatorName)) +
+  geom_line() +
+  facet_wrap(~Country) +
+  theme_bw() +
+  scale_colour_manual(breaks = c("Gross capital formation", "Exports", "Government expenditure", "Household expenditure", "Imports"),
+                      values = c("orange","brown","green","sky blue","purple")) +
+  labs()+
+  NULL
 
 ```
 
@@ -605,13 +685,65 @@ knitr::include_graphics(here::here("images", "gdp1.png"), error = FALSE)
 
 Secondly, recall that GDP is the sum of Household Expenditure (Consumption *C*), Gross Capital Formation (business investment *I*), Government Expenditure (G) and Net Exports (exports - imports). Even though there is an indicator `Gross Domestic Product (GDP)` in your dataframe, I would like you to calculate it given its components discussed above.
 
+```{r}
+GDP_components <- tidy_GDP_country %>% 
+  select(-volume) %>% 
+  pivot_wider(names_from = IndicatorName,
+              values_from = volume_bn)
+
+# modify column names
+colnames(GDP_components) <- gsub(" ","_", colnames(GDP_components) )
+
+# calculate GDP
+GDP_components <- GDP_components %>% 
+  mutate(GDP = Household_expenditure + 
+           Government_expenditure + 
+           Gross_capital_formation +
+           Exports - Imports)
+
+GDP_components %>% 
+  mutate(difference = (GDP-Gross_Domestic_Product)/Gross_Domestic_Product) %>% 
+  ggplot(aes(x=difference))+
+  geom_histogram(bins=30) +
+  geom_vline(aes(xintercept=mean(difference)))+
+  labs()+
+  NULL
+
+```
+
 > What is the % difference between what you calculated as GDP and the GDP figure included in the dataframe?
 
 ```{r gdp2, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "gdp2.png"), error = FALSE)
 ```
 
+```{r}
+GDP_components %>% 
+  mutate(Household_expenditure = Household_expenditure/GDP,
+         Government_expenditure  =  Government_expenditure/GDP,
+         Gross_capital_formation = Gross_capital_formation/GDP,
+         Net_Exports = (Exports - Imports)/GDP) %>% 
+  select(c("CountryID","Country","year",
+           "Household_expenditure","Government_expenditure","Gross_capital_formation","Net_Exports")) %>% 
+  pivot_longer(4:7,
+               names_to = "IndicatorName",
+               values_to = "percentage") %>% 
+  mutate(IndicatorName = gsub("_"," ",IndicatorName)) %>% 
+  ggplot(aes(x=as.numeric(year),y=percentage, 
+             color = IndicatorName)) +
+  geom_line() +
+  facet_wrap(~Country) +
+  theme_bw() +
+  scale_colour_manual(breaks = c("Gross capital formation", "Government expenditure", "Household expenditure", "Net Exports"),
+                      values = c("orange","green","sky blue","purple")) +
+  labs()+
+  NULL
+```
+
 > What is this last chart telling you? Can you explain in a couple of paragraphs the different dynamic among these three countries?
+
+
+
 
 > If you want to, please change `country_list <- c("United States","India", "Germany")` to include your own country and compare it with any two other countries you like
 
@@ -621,7 +753,9 @@ There is a lot of explanatory text, comments, etc. You do not need these, so del
 
 # Details
 
--   Who did you collaborate with: TYPE NAMES HERE
+Team Members:
+Alex Kubbinga, Clara Moreno Sanchezu, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao
+
 -   Approximately how much time did you spend on this problem set: ANSWER HERE
 -   What, if anything, gave you the most trouble: ANSWER HERE
 

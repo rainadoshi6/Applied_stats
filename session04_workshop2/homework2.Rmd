@@ -1,6 +1,6 @@
 ---
 title: "Session 4: Homework 2"
-author: "Study group and members' names go here"
+author: "MAM Group 5"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -98,10 +98,10 @@ Inspect your dataframe. It should have three variables now, one each for
 Let us plot the data using a time-series scatter plot, and add a trendline. To do that, we first need to create a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
 
 
-> In the following chunk of code, I used the `eval=FALSE` argument, which does not run a chunk of code; I did so that you can knit the document before tidying the data and creating a new dataframe `tidyweather`. When you actually want to run this code and knit your document, you must delete `eval=FALSE`, **not just here but in all chunks were `eval=FALSE` appears.**
+> In the following chunk of code, I used the `` argument, which does not run a chunk of code; I did so that you can knit the document before tidying the data and creating a new dataframe `tidyweather`. When you actually want to run this code and knit your document, you must delete ``, **not just here but in all chunks were `` appears.**
 
 
-```{r scatter_plot, eval=FALSE}
+```{r scatter_plot}
 
 tidyweather <- tidyweather %>%
   mutate(date = ymd(paste(as.character(Year), Month, "1")),
@@ -147,7 +147,7 @@ It is sometimes useful to group data into different time periods to study histor
 We remove data before 1800 and before using `filter`. Then, we use the `mutate` function to create a new variable `interval` which contains information on which period each observation belongs to. We can assign the different periods using `case_when()`.
 
 
-```{r intervals, eval=FALSE}
+```{r intervals}
 
 comparison <- tidyweather %>% 
   filter(Year>= 1881) %>%     #remove years prior to 1881
@@ -166,7 +166,7 @@ Inspect the `comparison` dataframe by clicking on it in the `Environment` pane.
 
 Now that we have the `interval` variable, we can create a density plot to study the distribution of monthly deviations (`delta`), grouped by the different time periods we are interested in. Set `fill` to `interval` to group and colour the data by different time periods.
 
-```{r density_plot, eval=FALSE}
+```{r density_plot}
 
 ggplot(comparison, aes(x=delta, fill=interval))+
   geom_density(alpha=0.2) +   #density plot with tranparency set to 20%
@@ -180,7 +180,7 @@ ggplot(comparison, aes(x=delta, fill=interval))+
 
 So far, we have been working with monthly anomalies. However, we might be interested in average annual anomalies. We can do this by using `group_by()` and `summarise()`, followed by a scatter plot to display the result. 
 
-```{r averaging, eval=FALSE}
+```{r averaging}
 
 #creating yearly averages
 average_annual_anomaly <- tidyweather %>% 
@@ -216,7 +216,7 @@ ggplot(average_annual_anomaly, aes(x=Year, y= annual_average_delta))+
 
 Your task is to construct a confidence interval for the average annual delta since 2011, both using a formula and using a bootstrap simulation with the `infer` package. Recall that the dataframe `comparison` has already grouped temperature anomalies according to time intervals; we are only interested in what is happening  between 2011-present.
 
-```{r, calculate_CI_using_formula, eval=FALSE}
+```{r, calculate_CI_using_formula, }
 
 formula_ci <- comparison %>% filter(interval =="2011-present") %>% 
   summarise(annual_average_delta = mean(delta, na.rm=TRUE),
@@ -254,8 +254,6 @@ formula_ci
 
 # use the infer package to construct a 95% CI for delta
 set.seed(1234)
-
-
 
 boot_delta<- comparison %>%
   filter(interval =="2011-present") %>%
@@ -436,6 +434,7 @@ hours = boot_email%/%60
 minutes = round(boot_email%%60)
 
 paste(hours, "hours", minutes, "minutes")
+
 # The 
 
 # wider
@@ -732,8 +731,6 @@ We can easily create a facet grid that plots bikes hired by month and year.
 
 ```{r tfl_month_year_grid, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "tfl_distributions_monthly.png"), error = FALSE)
-
-ggplot
 ```
 
 Look at May and Jun and compare 2020 with the previous years. What's happening?
@@ -763,28 +760,26 @@ plot_bike <- bike %>%
   inner_join(expected_hires, by = "month") %>% #adds column with the average bike rentals to each year/month combo
   mutate(fill = bikes_hired>expected_hired)
 
-plot_bike$lower = apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
-plot_bike$higher = apply(plot_bike[,3:4],1,max) # creates a column taking the largest value from actual vs average bikes hired
-plot_bike$date = ym(paste(plot_bike$year,plot_bike$month)) #creates column with date in ym format
-
-plot_bike %>% 
-  ggplot() +
-  geom_area(aes(x=month,y=bikes_hired,group=year,fill="red")) + #fills the area of actual bikes hired in red (using scatter points as guide)
-  geom_area(aes(x=month,y=expected_hired,group=year,fill="green"))+ # #fills the area of avg bikes hired in green (using scatter points as guide)
-  geom_area(aes(x=month,y=lower,group=year,fill=NA))+
-  # geom_ribbon(aes(x=2,ymin=bikes_hired, ymax=expected_hired,fill="red"),alpha=.3)+
-  facet_wrap(~year)+
-  NULL
+plot_bike$down  = plot_bike$expected_hired - apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
+plot_bike$up = apply(plot_bike[,3:4],1,max) - plot_bike$expected_hired # creates a column taking the largest value from actual vs average bikes hired
+plot_bike$date = ym(paste(plot_bike$year,plot_bike$month))
 
 plot_bike %>%
-  #filter(year==2016) %>%
-  ggplot(aes(month)) +
+  ggplot(aes(x=month)) +
+  geom_ribbon(aes(ymin = bikes_hired, ymax = expected_hired+up),fill="#7DCD85",alpha=0.4)+
+  geom_ribbon(aes(ymin = bikes_hired, ymax = expected_hired-down), fill="#CB454A", alpha=0.4)+
   geom_line(aes(y=expected_hired),colour="blue",size=2)+
-  geom_line(aes(y=bikes_hired),colour="grey",size=1)+
-  geom_ribbon(aes(ymax = expected_hired, ymin = bikes_hired))+
+  geom_line(aes(y=bikes_hired),colour="black",size=0.5)+
   facet_wrap(~year)+
+  labs(title="Monthly changes in Tfl bike rentals",
+       subtitle = "Change from monthly average shown in blue\n and calculated between 2016-2021",
+       x="",
+       y="Bike rentals",
+       caption = "Source: Tfl, London Data Store"
+       )+
+  scale_x_continuous(breaks = 1:12,
+                     labels = month.abb)+
   NULL
-
 ```
 
 
@@ -851,7 +846,9 @@ As usual, there is a lot of explanatory text, comments, etc. You do not need the
 
 # Details
 
-- Who did you collaborate with: TYPE NAMES HERE
+Team Members:
+Alex Kubbinga, Clara Moreno Sanchezu, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao
+
 - Approximately how much time did you spend on this problem set: ANSWER HERE
 - What, if anything, gave you the most trouble: ANSWER HERE
 
