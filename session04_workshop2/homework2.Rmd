@@ -484,7 +484,7 @@ plot
 
 
 
-```{r trump_margins, echo=FALSE, out.width="100%"}
+```{r, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "biden_approval_margin.png"), error = FALSE)
 ```
 
