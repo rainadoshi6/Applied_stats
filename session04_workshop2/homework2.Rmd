@@ -785,7 +785,10 @@ plot_bike <- bike %>%
   group_by(year, month) %>%
   summarize(bikes_hired = mean(bikes_hired)) %>%  #gets the average bikes for each year/month combo 1/2016, 2/2016 ....
   inner_join(expected_hires, by = "month") %>% #adds column with the average bike rentals to each year/month combo
-  mutate(fill = bikes_hired>expected_hired)
+  mutate(fill = bikes_hired>expected_hired,
+         up = ifelse(bikes_hired>expected_hired, bikes_hired-expected_hired, 0),
+         down = ifelse(bikes_hired>expected_hired, 0,bikes_hired-expected_hired),
+         Month = month(month, label=T))
 
 plot_bike$down  = plot_bike$expected_hired - apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
 plot_bike$up = apply(plot_bike[,3:4],1,max) - plot_bike$expected_hired # creates a column taking the largest value from actual vs average bikes hired
@@ -806,6 +809,31 @@ plot_bike %>%
        )+
   scale_x_continuous(breaks = 1:12,
                      labels = month.abb)+
+
+plot_bike$lower = apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
+plot_bike$higher = apply(plot_bike[,3:4],1,max) # creates a column taking the largest value from actual vs average bikes hired
+plot_bike$date = ym(paste(plot_bike$year,plot_bike$month)) #creates column with date in ym format
+
+# plot_bike %>% 
+#   ggplot() +
+#   geom_area(aes(x=Month,y=bikes_hired,group=year,fill="red")) + #fills the area of actual bikes hired in red (using scatter points as guide)
+#   geom_area(aes(x=Month,y=expected_hired,group=year,fill="green"))+ # #fills the area of avg bikes hired in green (using scatter points as guide)
+#   geom_area(aes(x=Month,y=lower,group=year,fill=NA))+
+#   # geom_ribbon(aes(x=2,ymin=bikes_hired, ymax=expected_hired,fill="red"),alpha=.3)+
+#   facet_wrap(~year)+
+#   NULL
+
+plot_bike %>%
+  ggplot(aes(x=Month)) +
+  geom_line(aes( y=expected_hired, group=year),colour="blue",size=2)+
+  geom_line(aes(y=bikes_hired, group=year),colour="black",size=.5)+
+  geom_ribbon(aes(ymin=expected_hired,ymax=expected_hired+up, group=year),fill="#7DCD85",alpha=0.4)  +
+  geom_ribbon(aes(ymin=expected_hired,ymax=expected_hired+down, group=year),fill="#CB454A",alpha=0.4)+
+  facet_wrap(~year)+ 
+  theme_bw() + 
+  labs(title = "Monthly changes in TfL bike rentals", 
+                    subtitle = "change from monthly average shown in blue and calculated between 2016-2019", caption= "Source: TfL, London Data Store",
+       x="", y="Bike Rentals") +
   NULL
 ```
 
@@ -834,7 +862,9 @@ plot_bike_week <- bike %>%
   inner_join(expected_hires_week, by = "week") %>% 
   mutate(fillcolor = bikes_hired>expected_hired,
          excess_rentals = bikes_hired - expected_hired,
-         percentage_change_expected = (excess_rentals/expected_hired))
+         percentage_change_expected = (excess_rentals/expected_hired),
+         up = ifelse(percentage_change_expected>0, (excess_rentals/expected_hired), 0),
+         down = ifelse(percentage_change_expected>0, 0,bikes_hired-expected_hired))
 
 plot_bike_week$lower = apply(plot_bike_week[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
 plot_bike_week$higher = apply(plot_bike_week[,3:4],1,max) # creates a column taking the largest value from actual vs average bikes hired
@@ -844,8 +874,9 @@ plot_bike_week %>% ggplot() +
   annotate(geom="rect", xmin = 14,xmax = 26, ymin=-Inf, ymax=Inf, alpha=0.1) + #Q2
   annotate(geom="rect", xmin = 40,xmax = 52, ymin=-Inf, ymax=Inf, alpha=0.1) + #Q4
   geom_line(aes(x=week, y=percentage_change_expected)) + 
-  geom_area(aes(x=week,y=percentage_change_expected,fill=fillcolor)) + 
-  geom_rug(aes(x=week, fill= ifelse(fillcolor, "red", "green")), alpha=1) +
+  geom_area(aes(x=week,y=percentage_change_expected)) +
+  
+  geom_rug(aes(x=week), color=ifelse(plot_bike_week$fillcolor,"green","red")) +
   facet_wrap(~year) +
   scale_y_continuous(labels = scales::percent) + 
   theme_bw() + 
