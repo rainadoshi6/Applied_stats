@@ -883,14 +883,15 @@ plot_bike_week %>% ggplot(aes(x=week, y=percentage_change_expected)) +
   theme_bw() + 
   theme(legend.position = "none") +
   labs(title = "Weekly change in TfL bike rentals", 
-                    subtitle = "% change from weekly averages calculated between 2016-2019")
+                    subtitle = "% change from weekly averages calculated between 2016-2019", 
+       y="")
   
 
 ```
 
 Should you use the mean or the median to calculate your expected rentals? Why?
 
-In our graphs we calculate the expected number of rentals per week or month between 2016-2019 and then, see how each week/month of 2020-2021 compares to the expected rentals. Think of the calculation `excess_rentals = actual_rentals - expected_rentals`. We use the mean instead of the median as we want to look at the expected number of rentals which is the mean. Also there is unlikely to be many outliers in the bike rentals which lets us conclude that the mean is a good representation. The graphs are identical when the mean is used.
+In our graphs we calculate the expected number of rentals per week or month between 2016-2019 and then, see how each week/month of 2020-2021 compares to the expected rentals. Think of the calculation `excess_rentals = actual_rentals - expected_rentals`. The bike rentals seem to be normally distributed and the mean is a good representation of the population mean. The graphs are identical when the mean is used and since we are trying to replicate the graphs we have used the mean.
 
 
 # Details
