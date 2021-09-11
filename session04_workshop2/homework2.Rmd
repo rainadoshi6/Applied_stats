@@ -489,23 +489,22 @@ knitr::include_graphics(here::here("images", "biden_approval_margin.png"), error
 ```
 
 ## Comparing Confidence Intervals
+
 In the bottom graph, the confidence intervals for week 3 and week 25 are very different. This could be due to a difference in sample size, or variation in responses. We believe it is more likely that the difference is due to week 3 having a much smaller sample size. 
 
 In the top graph we compared week 4 and week 25. There is not much of a difference in confidence intervals, suggesting the sample size is probably similar for both week 4 and week 25. 
 
 # Gapminder revisited
 
-Recall the `gapminder` data frame from the gapminder package. That data frame contains just six columns from the larger [data in Gapminder World](https://www.gapminder.org/data/). In this part, you will join a few dataframes with more data than the 'gapminder' package. Specifically, you will look at data on 
+Now we look at multiple data frames listed below-
 
+1. Life expectancy at birth (life_expectancy_years.csv)
+2. GDP per capita in constant 2010 US$ (https://data.worldbank.org/indicator/NY.GDP.PCAP.KD)
+3.Female fertility: The number of babies per woman (https://data.worldbank.org/indicator/SP.DYN.TFRT.IN)
+4. Primary school enrollment as % of children attending primary school (https://data.worldbank.org/indicator/SE.PRM.NENR)
+5. Mortality rate, for under 5, per 1000 live births (https://data.worldbank.org/indicator/SH.DYN.MORT)
+6. HIV prevalence (adults_with_hiv_percent_age_15_49.csv): The estimated number of people living with HIV per 100 population of age group 15-49.
 
-- Life expectancy at birth (life_expectancy_years.csv)
-- GDP per capita in constant 2010 US$ (https://data.worldbank.org/indicator/NY.GDP.PCAP.KD)
-- Female fertility: The number of babies per woman (https://data.worldbank.org/indicator/SP.DYN.TFRT.IN)
-- Primary school enrollment as % of children attending primary school (https://data.worldbank.org/indicator/SE.PRM.NENR)
-- Mortality rate, for under 5, per 1000 live births (https://data.worldbank.org/indicator/SH.DYN.MORT)
-- HIV prevalence (adults_with_hiv_percent_age_15_49.csv): The estimated number of people living with HIV per 100 population of age group 15-49.
-
-You must use the `wbstats` package to download data from the World Bank. The relevant World Bank indicators are `SP.DYN.TFRT.IN`, `SE.PRM.NENR`, `NY.GDP.PCAP.KD`, and `SH.DYN.MORT`
 
 ```{r, get_data, cache=TRUE}
 
@@ -571,21 +570,20 @@ hiv_life_expectancy_worldbank_data <- hiv_life_expectancy %>% inner_join( worldb
 
 ```
 
-1. What is the relationship between HIV prevalence and life expectancy? Generate a scatterplot with a smoothing line to report your results. You may find faceting useful
-
-
+1. We now check the relationship between HIV prevalence and life expectancy by generating a scatterplot with a smoothing line to report your results.
 
 ``` {r, scatterplot}
 
 
+
+
 hiv_life_expectancy_worldbank_data <- hiv_life_expectancy_worldbank_data %>% 
-  filter(Year>= 1881) %>%     #remove years prior to 1881
   #create new variable 'interval', and assign values based on criteria below:
   mutate(interval = case_when(
-    Year %in% c(1881:1920) ~ "1881-1920",
-    Year %in% c(1921:1950) ~ "1921-1950",
-    Year %in% c(1951:1980) ~ "1951-1980",
-    Year %in% c(1981:2010) ~ "1981-2010",
+    Year %in% c(1980:1989) ~ "1979-1989",
+    Year %in% c(1990:2000) ~ "1990-2000",
+    Year %in% c(2001:2010) ~ "2001-2010",
+    #Year %in% c(1999:2009) ~ "1999-2009",
     TRUE ~ "2011-present"
   ))
 
@@ -602,20 +600,32 @@ ggplot(hiv_life_expectancy_worldbank_data, aes(x = HIV_Value , y = Life_Expectan
   facet_wrap(~interval)+
   NULL
 
-#need to discuss values on X & Y axes
-#need to discuss what to facet_wrap by
-#need to understand how to interpret this graph
 
 ```
 
 
+We have faceted the graphs by intervals. We see that as the HIV Value increases the life expectancy decreases. 
 
-
-2. What is the relationship between fertility rate and GDP per capita? Generate a scatterplot with a smoothing line to report your results. You may find facetting by region useful
+2. Now we analyse the relationship between fertility rate and GDP per capita? Generate a scatterplot with a smoothing line to report your results. You may find facetting by region useful
 
 ``` {r}
 
-ggplot(hiv_life_expectancy_worldbank_data, aes(x = NY.GDP.PCAP.KD , y = SP.DYN.TFRT.IN)) +
+
+library(countrycode)
+
+#Creating a dataset hiv_life_expectancy_worldbank_data_continent which has a column for continents corresponding to each country
+
+hiv_life_expectancy_worldbank_data_continent <- hiv_life_expectancy_worldbank_data
+
+hiv_life_expectancy_worldbank_data_continent <- cbind(hiv_life_expectancy_worldbank_data, new_col = "continent") 
+
+
+hiv_life_expectancy_worldbank_data_continent$continent <- countrycode(sourcevar = hiv_life_expectancy_worldbank_data_continent$country,
+                            origin = "country.name",
+                            destination = "continent")
+
+
+ggplot(hiv_life_expectancy_worldbank_data_continent, aes(x = NY.GDP.PCAP.KD , y = SP.DYN.TFRT.IN)) +
   geom_point() +
   geom_smooth(method = "lm") +
    labs(
@@ -623,16 +633,21 @@ ggplot(hiv_life_expectancy_worldbank_data, aes(x = NY.GDP.PCAP.KD , y = SP.DYN.T
     x = "GDP",
     y = "Fertility"
   )+
-  facet_wrap(~interval)+
+  facet_wrap(~continent)+
   NULL
 
 
 
 
 ```
+- As we can see from plotting the gdppercapita against the fertility rate, when GDP per capita increases the fertility rate decreases substantially and reaches an upper bound at a fertility rate of 3
+
+- In Asia, Africa, Americas and Ocenia we see the trend that the higher the GDP the lower is the Fertility rate
+
+- However, in Europe we see that the higher GDP countries also have a higher fertility rate
 
 
-3. Which regions have the most observations with missing HIV data? Generate a bar chart (`geom_col()`), in descending order.
+3. Now we check which regions have the most observations with missing HIV data and generate a bar chart, in descending order.
 
 ```{r}
 
@@ -651,7 +666,9 @@ hiv_missing <- hiv_life_expectancy_worldbank_data %>%
 hiv_missing[1:15,] %>%  
 #  slice_max ( order_by = count_missing, n=5 ) %>%
   ggplot(aes(x = count_missing, y = fct_reorder(country, count_missing))) +
-  geom_col(fill="orange")
+  geom_col(fill="orange")+
+  labs(x="No. of missing values" , y="Country" , title= "Missing values of HIV data per country")+
+    NULL
 
 
 ```
@@ -660,36 +677,61 @@ hiv_missing[1:15,] %>%
 
 
 
-4. How has mortality rate for under 5 changed by region? In each region, find the top 5 countries that have seen the greatest improvement, as well as those 5 countries where mortality rates have had the least improvement or even deterioration.
+4. Now we see how the mortality rate for under 5 has changed by region. 
+
+In each region, find the top 5 countries that have seen the greatest improvement, as well as those 5 countries where mortality rates have had the least improvement or even deterioration.
 
 ``` {r}
 
+#now we filter the data from year 2011 and 1979
+mortality_1979_2011 <- hiv_life_expectancy_worldbank_data_continent %>% 
+                      filter ( as.numeric(Year) %in% c(  1979,2011 ) )
 
-hiv_life_expectancy_worldbank_data_lessthan5 <- hiv_life_expectancy_worldbank_data %>% 
-  filter(SH.DYN.MORT <=5) 
+#now we select the columns to consider
+mortality_1979_2011 <- select( mortality_1979_2011 , c( "Year", "continent" , "country" , "SH.DYN.MORT" ))
 
-ggplot(hiv_life_expectancy_worldbank_data_lessthan5, aes(x = interval , y = SH.DYN.MORT)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-   labs(
-    title = "Relationship",
-    x = "Interval",
-    y = "Mortality"
-  )+
-  facet_wrap(~country)+
-  NULL
+#we rename the columns to add a character 
+mortality_1979_2011$Year = paste("y",mortality_1979_2011$Year,sep="")
 
+#now we make the table wider to allow us to select the difference in values later
+mortality_1979_2011_wide <- pivot_wider( data=mortality_1979_2011 , names_from = Year, values_from = SH.DYN.MORT  )
+
+
+#now we add an additional column to calcualte the difference in mortality values
+mortality_1979_2011_wide <- mortality_1979_2011_wide %>% mutate(mortality_diff = y2011 - y1979 ) 
+
+#we group by the region and rank the mortality differences
+mortality_1979_2011_ranked <- mortality_1979_2011_wide %>% 
+                          group_by(continent) %>% 
+                          summarise( country=country,  asc_ranking = rank(mortality_diff) , dsc_ranking = rank(-mortality_diff)  )
+
+
+#as per our analysis the lesser mortality range difference means the worst improvement and the largest mortality rate differnce in 1979 and 2011 shows the best improved country
+
+mortality_best5 <- mortality_1979_2011_ranked %>% filter( asc_ranking <=5  )
+
+mortality_worst5 <- mortality_1979_2011_ranked %>% filter( dsc_ranking <=5  )
+
+
+mortality_worst5 <-select( mortality_worst5  , c ( "continent" , "country"))
+
+mortality_worst5
+
+
+mortality_best5 <-select( mortality_worst5  , c ( "continent" , "country"))
+
+mortality_best5
 
 
 ```
 
 
 
-5. Is there a relationship between primary school enrollment and fertility rate?
+5. We now check the relationship between primary school enrollment and fertility rate
 
 ```{r}
 
-ggplot(hiv_life_expectancy_worldbank_data, aes(x = SP.DYN.TFRT.IN , y = SE.PRM.NENR)) +
+ggplot(hiv_life_expectancy_worldbank_data_continent, aes(x = SP.DYN.TFRT.IN , y = SE.PRM.NENR)) +
   geom_point() +
   geom_smooth(method = "lm") +
    labs(
@@ -697,7 +739,7 @@ ggplot(hiv_life_expectancy_worldbank_data, aes(x = SP.DYN.TFRT.IN , y = SE.PRM.N
     x = "Fertility",
     y = "School Enrollment"
   )+
-  facet_wrap(~interval)+
+  facet_wrap(~continent)+
   NULL
 
 
@@ -705,7 +747,10 @@ ggplot(hiv_life_expectancy_worldbank_data, aes(x = SP.DYN.TFRT.IN , y = SE.PRM.N
 
 ```
 
+Once again we see that Europe and the rest of the continents have different trends.
+In Asia, Afirca, Americas and Oceania - the higher the fertility, the lesser is the school enrollment. 
 
+In Europe, the higher the fertility rate the more is the school enrollment. 
 
 
 # Challenge 1: Excess rentals in TfL bike sharing
