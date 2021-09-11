@@ -623,7 +623,7 @@ ggplot(hiv_life_expectancy_worldbank_data, aes(x = NY.GDP.PCAP.KD , y = SP.DYN.T
     x = "GDP",
     y = "Fertility"
   )+
-  facet_wrap(~interval)+
+  
   NULL
 
 
@@ -770,25 +770,7 @@ plot_bike <- bike %>%
          down = ifelse(bikes_hired>expected_hired, 0,bikes_hired-expected_hired),
          Month = month(month, label=T))
 
-plot_bike$down  = plot_bike$expected_hired - apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
-plot_bike$up = apply(plot_bike[,3:4],1,max) - plot_bike$expected_hired # creates a column taking the largest value from actual vs average bikes hired
-plot_bike$date = ym(paste(plot_bike$year,plot_bike$month))
 
-plot_bike %>%
-  ggplot(aes(x=month)) +
-  geom_ribbon(aes(ymin = bikes_hired, ymax = expected_hired+up),fill="#7DCD85",alpha=0.4)+
-  geom_ribbon(aes(ymin = bikes_hired, ymax = expected_hired-down), fill="#CB454A", alpha=0.4)+
-  geom_line(aes(y=expected_hired),colour="blue",size=2)+
-  geom_line(aes(y=bikes_hired),colour="black",size=0.5)+
-  facet_wrap(~year)+
-  labs(title="Monthly changes in Tfl bike rentals",
-       subtitle = "Change from monthly average shown in blue\n and calculated between 2016-2021",
-       x="",
-       y="Bike rentals",
-       caption = "Source: Tfl, London Data Store"
-       )+
-  scale_x_continuous(breaks = 1:12,
-                     labels = month.abb)+
 
 plot_bike$lower = apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
 plot_bike$higher = apply(plot_bike[,3:4],1,max) # creates a column taking the largest value from actual vs average bikes hired
@@ -844,19 +826,19 @@ plot_bike_week <- bike %>%
          excess_rentals = bikes_hired - expected_hired,
          percentage_change_expected = (excess_rentals/expected_hired),
          up = ifelse(percentage_change_expected>0, (excess_rentals/expected_hired), 0),
-         down = ifelse(percentage_change_expected>0, 0,bikes_hired-expected_hired))
+         down = ifelse(percentage_change_expected>0, 0,(excess_rentals/expected_hired)))
 
 plot_bike_week$lower = apply(plot_bike_week[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
 plot_bike_week$higher = apply(plot_bike_week[,3:4],1,max) # creates a column taking the largest value from actual vs average bikes hired
 
 
-plot_bike_week %>% ggplot() +
+plot_bike_week %>% ggplot(aes(x=week, y=percentage_change_expected)) +
   annotate(geom="rect", xmin = 14,xmax = 26, ymin=-Inf, ymax=Inf, alpha=0.1) + #Q2
   annotate(geom="rect", xmin = 40,xmax = 52, ymin=-Inf, ymax=Inf, alpha=0.1) + #Q4
   geom_line(aes(x=week, y=percentage_change_expected)) + 
-  geom_area(aes(x=week,y=percentage_change_expected)) +
-  
-  geom_rug(aes(x=week), color=ifelse(plot_bike_week$fillcolor,"green","red")) +
+  geom_ribbon(aes(ymin=0,ymax=up, group=year),fill="#7DCD85",alpha=0.4)  +
+  geom_ribbon(aes(ymin=0,ymax=down, group=year),fill="#CB454A",alpha=0.4)+
+  geom_rug(aes(x=week), color=ifelse(plot_bike_week$fillcolor,"#7DCD85","#CB454A"), sides="b") +
   facet_wrap(~year) +
   scale_y_continuous(labels = scales::percent) + 
   theme_bw() + 
