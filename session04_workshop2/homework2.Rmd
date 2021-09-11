@@ -787,7 +787,6 @@ plot_bike <- bike %>%
          down = ifelse(bikes_hired>expected_hired, 0,bikes_hired-expected_hired),
          Month = month(month, label=T))
 
-<<<<<<< HEAD
 plot_bike$down  = plot_bike$expected_hired - apply(plot_bike[,3:4],1,min) # creates a column taking the smallest value from actual vs average bikes hired
 plot_bike$up = apply(plot_bike[,3:4],1,max) - plot_bike$expected_hired # creates a column taking the largest value from actual vs average bikes hired
 plot_bike$date = ym(paste(plot_bike$year,plot_bike$month))
