@@ -641,6 +641,7 @@ ggplot(hiv_life_expectancy_worldbank_data_continent, aes(x = NY.GDP.PCAP.KD , y 
 
 
 ```
+
 - As we can see from plotting the gdppercapita against the fertility rate, when GDP per capita increases the fertility rate decreases substantially and reaches an upper bound at a fertility rate of 3
 
 - In Asia, Africa, Americas and Ocenia we see the trend that the higher the GDP the lower is the Fertility rate
@@ -758,7 +759,7 @@ In Europe, the higher the fertility rate the more is the school enrollment.
 
 Recall the TfL data on how many bikes were hired every single day. We can get the latest data by running the following
 
-```{r, get_tfl_data, cache=TRUE}
+```{r, get_tfl_data, cache=TRUE, warning= FALSE , messages=FALSE}
 url <- "https://data.london.gov.uk/download/number-bicycle-hires/ac29363e-e0cb-47cc-a97a-e216d900a6b0/tfl-daily-cycle-hires.xlsx"
 
 # Download TFL data to temporary file
@@ -828,7 +829,8 @@ plot_bike %>%
   geom_ribbon(aes(ymin=expected_hired,ymax=expected_hired+up, group=year),fill="#7DCD85",alpha=0.4)  + #creates green shaded
   geom_ribbon(aes(ymin=expected_hired,ymax=expected_hired+down, group=year),fill="#CB454A",alpha=0.4)+ #creates red shaded
   facet_wrap(~year)+ #creates plots for years
-  theme_bw() + 
+  theme(axis.text.x = element_text(angle=60 , hjust=1) ) +
+ # theme_bw() + 
   labs(title = "Monthly changes in TfL bike rentals", 
                     subtitle = "change from monthly average shown in blue and calculated between 2016-2019", caption= "Source: TfL, London Data Store",
        x="", y="Bike Rentals") +
@@ -897,7 +899,7 @@ In our graphs we calculate the expected number of rentals per week or month betw
 # Details
 
 Team Members:
-Alex Kubbinga, Clara Moreno Sanchezu, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao
+Alex Kubbinga, Clara Moreno Sanchez, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao
 
 - Approximately how much time did you spend on this problem set: Too long
 - What, if anything, gave you the most trouble: ANSWER HERE
