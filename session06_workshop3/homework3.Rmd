@@ -546,7 +546,7 @@ TestUKIP <- t(select(c(Seat,ukip_2015)))
    geom_smooth(aes(x=leave_share,y=ukip_2015),data= TestUKIP, col()="yellow")+
   labs(title = 'How Political Affiliation translates to voting') +
 xlab('Party % in the UK 2015 general election') +
-ylab('Leave % in the 2015 Brexit Referendum') +
+ylab('Leave % in the 2015 Brexit Referendum') + 
   NULL
   
 ```
