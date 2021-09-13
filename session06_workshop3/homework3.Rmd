@@ -290,17 +290,18 @@ This the standard workflow for performing hypothesis tests.
 
 # IMDB ratings: Differences between directors
 
-Recall the IMBD ratings data. I would like you to explore whether the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not. I have already calculated the confidence intervals for the mean ratings of these two directors and as you can see they overlap.
+We would like to explore whether the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not. First, we tried to replicate the graph showing the confidnece intervals for the mean ratings of these two directors and as you can see they overlap.
 
 ```{r directors, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "directors.png"), error = FALSE)
 ```
+To replicate the graph, we first filtered out the movies of these two directors, then group by the director and summarise the mean, std, no. of movies, to calculate the standard error, t_critical and margin of error, to get the confidence interval of the mean ratings of the movies of the two directors.
 
-First, I would like you to reproduce this graph. You may find `geom_errorbar()` and `geom_rect()` useful.
+Then we plotted the data and added error bars to the mean ratings, and indicate the overlap of confidence intervals.
 
 ```{r}
 movies <- read_csv(here::here('data', 'movies.csv'))
-
+# modify the dataset for plot
 movies_comp <- movies %>% 
   filter(director %in% c("Steven Spielberg","Tim Burton")) %>%
   group_by(director) %>% 
@@ -314,15 +315,17 @@ movies_comp <- movies %>%
             rating_high = mean_rating + margin_of_error) %>% 
   arrange(desc(mean_rating))
 
+# plot the data, add error bars and label the datapoint
 movies_comp %>% 
   ggplot(mapping = aes(x=mean_rating,y=fct_relevel(director, levels=c("Tim Burton","Steven Spielberg"))))+
   
   geom_point(size = 5, mapping = aes(color = director))+
   geom_errorbar(aes(xmin = rating_low, xmax = rating_high, color = director), width = 0.1,size = 1.5)+
-  ggrepel::geom_text_repel(aes(x=mean_rating, label = round(mean_rating, 2)), size=10, position = position_dodge(0.9)) +
-  ggrepel::geom_text_repel(aes(x=rating_low, label = round(rating_low, 2)),size = 5, position = position_dodge(0.9)) +
-  ggrepel::geom_text_repel(aes(x=rating_high, label = round(rating_high, 2)),size = 5, position = position_dodge(0.9)) +
-  # geom_text(aes(label = round(mean_rating,digits=2)), position = position_dodge(0.9),vjust=-2,size = 10)+
+  ggrepel::geom_text_repel(aes(x=mean_rating, label = round(mean_rating, 2)), size=4, position = position_dodge(0.9)) +
+  ggrepel::geom_text_repel(aes(x=rating_low, label = round(rating_low, 2)),size = 3, position = position_dodge(0.9)) +
+  ggrepel::geom_text_repel(aes(x=rating_high, label = round(rating_high, 2)),size = 3, position = position_dodge(0.9)) +
+
+# plot the grey rectangle to show the overlap of confidence intervals
   geom_rect(xmin = 7.27,xmax = 7.33, ymin=0, ymax=Inf, alpha=0.4)+
   labs(title = "Do Spielberg and Burton have the same mean IMDB ratings?",
        subtitle = "95% confidence interval overlap",
@@ -331,13 +334,12 @@ movies_comp %>%
 
 ```
 
-In addition, you will run a hpothesis test. You should use both the `t.test` command and the `infer` package to simulate from a null distribution, where you assume zero difference between the two.
+In addition, we ran a hpothesis test using both the `t.test` command and the `infer` package to simulate from a null distribution, where we assume zero difference between the two.
 
-> Before anything, write down the null and alternative hypotheses, as well as the resulting test statistic and the associated t-stat or p-value. At the end of the day, what do you conclude?
+First of all, the Null hypothesis and the alternaltive hypothesis are:
 
-You can load the data and examine its structure
-
-if calculated the t_stat by hand:t_stat = 2.7, p_valuel = 0.007, H0 should be rejected
+* H0: Spielburg and Burton has the same mean IMDB ratings for the movies they direct
+* H1: Spielburg has a higher mean IMDB ratings than Burton
 
 ```{r}
 movies_comp
@@ -350,6 +352,9 @@ p_value
 
 ```
 
+As we can see from the calculation above, the t_stat by hand:t_stat = 2.7, p_valuel = 0.007, indicating that H0 should be rejected.
+
+Next we use the `t.test` command:
 
 ```{r load-movies-data}
 movies <- read_csv(here::here("data", "movies.csv"))
@@ -362,6 +367,9 @@ t.test(rating ~ director, data = movies_hypo)
 
 ```
 
+From the `t.test`, we get the t critical at 3 and the p-value at 0.01, which deliever the same message that H0 should be rejected. We are 95% confident that Spielburg's movies are rated higher on IMDB than Burton's movies.
+
+Finally, we run the simulation from a null distribution where we hypothesize that the meaning ratings for Speilburg and Burton are the same.
 
 ```{r}
 
@@ -393,7 +401,7 @@ p_value <- null_dist_movies %>%
 p_value
 
 ```
-
+The exercise gives a p value of 0.008.
 
 # Omega Group plc- Pay Discrimination
 
@@ -683,9 +691,11 @@ query2_tibble %>%
 
 # Challenge 3:GDP components over time and among countries
 
-At the risk of oversimplifying things, the main components of gross domestic product, GDP are personal consumption (C), business investment (I), government spending (G) and net exports (exports - imports). You can read more about GDP and the different approaches in calculating at the [Wikipedia GDP page](https://en.wikipedia.org/wiki/Gross_domestic_product).
+At the risk of oversimplifying things, the main components of gross domestic product, GDP are personal consumption (C), business investment (I), government spending (G) and net exports (exports - imports). More about GDP and the different approaches in calculating could be found at the [Wikipedia GDP page](https://en.wikipedia.org/wiki/Gross_domestic_product).
 
-The GDP data we will look at is from the [United Nations' National Accounts Main Aggregates Database](https://unstats.un.org/unsd/snaama/Downloads), which contains estimates of total GDP and its components for all countries from 1970 to today. We will look at how GDP and its components have changed over time, and compare different countries and how much each component contributes to that country's GDP. The file we will work with is [GDP and its breakdown at constant 2010 prices in US Dollars](http://unstats.un.org/unsd/amaapi/api/file/6) and it has already been saved in the Data directory. Have a look at the Excel file to see how it is structured and organised
+The GDP data we will look at is from the [United Nations' National Accounts Main Aggregates Database](https://unstats.un.org/unsd/snaama/Downloads), which contains estimates of total GDP and its components for all countries from 1970 to today. We will look at how GDP and its components have changed over time, and compare different countries and how much each component contributes to that country's GDP. The file we will work with is [GDP and its breakdown at constant 2010 prices in US Dollars](http://unstats.un.org/unsd/amaapi/api/file/6) and it has already been saved in the Data directory. 
+
+By inpecting the Excel file, we found the data is structured by Have a look at the Excel file to see how it is structured and organised by country and by GDP components, showcasing the volume in USD from 1970 to 2017.
 
 ```{r read_GDP_data}
 
@@ -695,14 +705,23 @@ UN_GDP_data  <-  read_excel(here::here("data", "Download-GDPconstant-USD-countri
 
 ```
 
-The first thing you need to do is to tidy the data, as it is in wide format and you must make it into long, tidy format. Please express all figures in billions (divide values by `1e9`, or $10^9$), and you want to rename the indicators into something shorter.
+First we transform the data from a wide format to a long format. Then we tidy the data by expressing all figures in billions, and rename the some indicators into something shorter:
+
+* Exports of goods and services -> Exports
+* Imports of goods and services -> Imports
+* General government final consumption expenditure -> Government expenditure
+* Gross Domestic Product (GDP) -> Gross Domestic Product
+
 
 ```{r reshape_GDP_data}
 # check unique values of IndicatorName
 unique(UN_GDP_data$IndicatorName)
 
 tidy_GDP_data  <- UN_GDP_data %>% 
+  # transform into long format
   pivot_longer(cols = 4:51, names_to = "year", values_to = "volume") %>% 
+  # tidy volumn data into billions
+  # shorten indicator name
   mutate(volume_bn = volume / 10^9, IndicatorName = case_when (
     IndicatorName == "Household consumption expenditure (including Non-profit institutions serving households)" ~ "Household expenditure",
     IndicatorName == "Exports of goods and services" ~ "Exports",
@@ -711,6 +730,7 @@ tidy_GDP_data  <- UN_GDP_data %>%
     IndicatorName == "Gross capital formation" ~ "Gross capital formation",
     IndicatorName == "Gross Domestic Product (GDP)" ~ "Gross Domestic Product",
     T~"Others")) %>% 
+  #keep only the key GDP components
   filter(IndicatorName!="Others")
 
 glimpse(tidy_GDP_data)
@@ -725,7 +745,7 @@ head(tidy_GDP_country)
 
 ```
 
-First, can you produce this plot?
+We replicate the chart below:
 
 ```{r gdp1, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "gdp1.png"), error = FALSE)
@@ -741,14 +761,14 @@ tidy_GDP_country %>%
   theme_bw() +
   scale_colour_manual(breaks = c("Gross capital formation", "Exports", "Government expenditure", "Household expenditure", "Imports"),
                       values = c("orange","brown","green","sky blue","purple")) +
-  labs()+
+  labs(x="",y="Billion US$", title = "GDP components over time", subtitle="In constant 2010 USD")+
   NULL
 
 ```
 
 
 
-Secondly, recall that GDP is the sum of Household Expenditure (Consumption *C*), Gross Capital Formation (business investment *I*), Government Expenditure (G) and Net Exports (exports - imports). Even though there is an indicator `Gross Domestic Product (GDP)` in your dataframe, I would like you to calculate it given its components discussed above.
+Secondly, recall that GDP is the sum of Household Expenditure (Consumption *C*), Gross Capital Formation (business investment *I*), Government Expenditure (G) and Net Exports (exports - imports). Even though there is an indicator `Gross Domestic Product (GDP)` in your dataframe, we would like to calculate it given its components discussed above.
 
 ```{r}
 GDP_components <- tidy_GDP_country %>% 
