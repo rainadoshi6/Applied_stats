@@ -194,12 +194,12 @@ yrbss_stats_alt <- yrbss %>%
 #approximate by 1.96
 t_critical <- 1.96 # qt(0.975, ) # calculate df with Welch-Satterhwaite formula
 
-no_ci_lower <- 66.674 - t_critical*17.638/sqrt(4404)
-no_ci_higher <- 66.674 + t_critical*17.638/sqrt(4404)
+no_ci_lower <- 66.674 - t_critical*17.638/sqrt(sum(yrbss_stats_alt$n))
+no_ci_higher <- 66.674 + t_critical*17.638/sqrt(sum(yrbss_stats_alt$n))
 print(sprintf("weights of 'no': 95%% confidence interval is [%f,%f]",no_ci_lower,no_ci_higher))
 
-yes_ci_lower <- 68.448 - t_critical*16.478/sqrt(8906)
-yes_ci_higher <- 68.448 + t_critical*16.478/sqrt(8906)
+yes_ci_lower <- 68.448 - t_critical*16.478/sqrt(sum(yrbss_stats_alt$n))
+yes_ci_higher <- 68.448 + t_critical*16.478/sqrt(sum(yrbss_stats_alt$n))
 print(sprintf("weights of 'yes': 95%% confidence interval is [%f,%f]",yes_ci_lower,yes_ci_higher))
 
 
@@ -282,16 +282,17 @@ null_dist %>%
 
 # IMDB ratings: Differences between directors
 
-We would like to explore whether the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not. First, we tried to replicate the graph showing the confidnece intervals for the mean ratings of these two directors and as you can see they overlap.
+- We would like to explore whether the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not. First, we tried to replicate the graph showing the confidence intervals for the mean ratings of these two directors and as you can see they overlap.
 
 ```{r directors, echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "directors.png"), error = FALSE)
 ```
-To replicate the graph, we first filtered out the movies of these two directors, then group by the director and summarise the mean, std, no. of movies, to calculate the standard error, t_critical and margin of error, to get the confidence interval of the mean ratings of the movies of the two directors.
 
-Then we plotted the data and added error bars to the mean ratings, and indicate the overlap of confidence intervals.
+- To replicate the graph, we first filtered out the movies of these two directors, then group by the director and summarise the mean, std, no. of movies, to calculate the standard error, t_critical and margin of error, to get the confidence interval of the mean ratings of the movies of the two directors.
 
-```{r}
+- Then we plotted the data and added error bars to the mean ratings, and indicate the overlap of confidence intervals.
+
+```{r, warning=FALSE}
 movies <- read_csv(here::here('data', 'movies.csv'))
 # modify the dataset for plot
 movies_comp <- movies %>% 
@@ -321,32 +322,34 @@ movies_comp %>%
   geom_rect(xmin = 7.27,xmax = 7.33, ymin=0, ymax=Inf, alpha=0.4)+
   labs(title = "Do Spielberg and Burton have the same mean IMDB ratings?",
        subtitle = "95% confidence interval overlap",
-       x = "Mean IMDB Rating") +
+       x = "Mean IMDB Rating",
+       y = "") +
   NULL
 
 ```
 
-In addition, we ran a hpothesis test using both the `t.test` command and the `infer` package to simulate from a null distribution, where we assume zero difference between the two.
+- In addition, we ran a hypothesis test using both the `t.test` command and the `infer` package to simulate from a null distribution, where we assume zero difference between the two.
 
-First of all, the Null hypothesis and the alternaltive hypothesis are:
+- First of all, the Null hypothesis and the alternaltive hypothesis are:
 
-* H0: Spielburg and Burton has the same mean IMDB ratings for the movies they direct
-* H1: Spielburg has a higher mean IMDB ratings than Burton
+- H0: Spielburg and Burton have the same mean IMDB ratings for the movies they direct
+- H1: Spielburg has a different mean IMDB ratings from Burton
 
 ```{r}
-movies_comp
+# movies_comp
 
+# calculate p_value by hand
 t_stat =  (7.57-6.93)/sqrt(0.695*0.695/23 + 0.749*0.749/16)
 # p_value = 2*0.0035
 p_value = 2*(1-pt(2.7,37))
-t_stat
-p_value
+paste("t_stat:",t_stat)
+paste("p_value:",p_value)
 
 ```
 
-As we can see from the calculation above, the t_stat by hand:t_stat = 2.7, p_valuel = 0.007, indicating that H0 should be rejected.
+- As we can see from the calculation above, the t_stat by hand:t_stat = 2.7, p_value = 0.01, indicating that H0 should be rejected.
 
-Next we use the `t.test` command:
+- Next we use the `t.test` command:
 
 ```{r load-movies-data}
 movies <- read_csv(here::here("data", "movies.csv"))
@@ -359,9 +362,9 @@ t.test(rating ~ director, data = movies_hypo)
 
 ```
 
-From the `t.test`, we get the t critical at 3 and the p-value at 0.01, which deliever the same message that H0 should be rejected. We are 95% confident that Spielburg's movies are rated higher on IMDB than Burton's movies.
+- From the `t.test`, we get the t statistics at 2.7 and the p-value at 0.01, which deliver the same message that H0 should be rejected. 
 
-Finally, we run the simulation from a null distribution where we hypothesize that the meaning ratings for Speilburg and Burton are the same.
+- Finally, we run the simulation from a null distribution where we hypothesize that the meaning ratings for Speilburg and Burton are the same.
 
 ```{r}
 
@@ -393,13 +396,16 @@ p_value <- null_dist_movies %>%
 p_value
 
 ```
-The exercise gives a p value of 0.008.
+
+- The exercise gives a p value of 0.008. 
+
+- Three methods deliver the same message that H0 should be rejected. We are 95% confident that Spielburg's movies are rated higher on IMDB than Burton's movies.
 
 # Omega Group plc- Pay Discrimination
 
 At the last board meeting of Omega Group Plc., the headquarters of a large multinational company, the issue was raised that women were being discriminated in the company, in the sense that the salaries were not the same for male and female executives. A quick analysis of a sample of 50 employees (of which 24 men and 26 women) revealed that the average salary for men was about 8,700 higher than for women. This seemed like a considerable difference, so it was decided that a further analysis of the company salaries was warranted.
 
-You are asked to carry out the analysis. The objective is to find out whether there is indeed a significant difference between the salaries of men and women, and whether the difference is due to discrimination or whether it is based on another, possibly valid, determining factor.
+Now we need to carry out the analysis. The objective is to find out whether there is indeed a significant difference between the salaries of men and women, and whether the difference is due to discrimination or whether it is based on another, possibly valid, determining factor.
 
 ## Loading the data
 
@@ -409,15 +415,14 @@ glimpse(omega) # examine the data frame
 
 ```
 
-## Relationship Salary - Gender ?
+## Relationship Salary - Gender
 
-The data frame `omega` contains the salaries for the sample of 50 executives in the company. Can you conclude that there is a significant difference between the salaries of the male and female executives?
-
-Note that you can perform different types of analyses, and check whether they all lead to the same conclusion
+- The data frame `omega` contains the salaries for the sample of 50 executives in the company. We want to investigate if there is a significant difference between the salaries of the male and female executives by performing the following analytics and see if they give same conclusions.
 
 . Confidence intervals . Hypothesis testing . Correlation analysis . Regression
 
-Calculate summary statistics on salary by gender. Also, create and print a dataframe where, for each gender, you show the mean, SD, sample size, the t-critical, the SE, the margin of error, and the low/high endpoints of a 95% condifence interval
+
+First we calculate summary statistics on salary by gender, create and print a dataframe where, for each gender, we show the mean, SD, sample size, the t-critical, the SE, the margin of error, and the low/high endpoints of a 95% confidence interval
 
 ```{r, confint_single_valiables}
 # Summary Statistics of salary by gender
@@ -435,16 +440,16 @@ mosaic::favstats (salary ~ gender, data=omega) %>%
 
 ```
 
-> What can you conclude from your analysis? A couple of sentences would be enough
+- Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have higher salary than the female on average.
 
-- Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have higher omega than the female in average.
-
-You can also run a hypothesis testing, assuming as a null hypothesis that the mean difference in salaries is zero, or that, on average, men and women make the same amount of money. You should tun your hypothesis testing using `t.test()` and with the simulation method from the `infer` package.
+- You can also run a hypothesis testing, assuming as a null hypothesis that the mean difference in salaries is zero, or that, on average, men and women make the same amount of money. You should tun your hypothesis testing using `t.test()` and with the simulation method from the `infer` package.
 
 ```{r, hypothesis_testing}
 # hypothesis testing using t.test() 
 t.test(salary ~ gender, data=omega)
+```
 
+```{r, infer}
 # hypothesis testing using infer package
 obs_diff <- omega %>%
   specify(salary ~ gender) %>%
@@ -464,17 +469,16 @@ null_dist <- omega %>%
   calculate(stat = "diff in means", order = c("female", "male"))
 
 null_dist %>% 
-  visualise()
+  visualise()+
+  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
 
 # Warning: Please be cautious in reporting a p-value of 0. This result is an approximation based on the number of `reps` chosen in the `generate()` step.
 p_value <- null_dist %>% 
   get_pvalue(obs_stat = obs_diff, direction="both")
-
+p_value
 ```
 
-> What can you conclude from your analysis? A couple of sentences would be enough
-
-- Here our null hypothesis is that the difference of omega between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. 
+- Here our null hypothesis is that the difference of omega between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. There is difference between the average male and female salary.
 
 ## Relationship Experience - Gender?
 
@@ -483,16 +487,71 @@ At the board meeting, someone raised the issue that there was indeed a substanti
 ```{r, experience_stats}
 # Summary Statistics of salary by gender
 favstats (experience ~ gender, data=omega)
+```
+
+Now we perform similar analyses as in the previous section to see if there is a significant difference between the experience of the male and female executives.
+
+```{r, confint_single_valiables}
+# Summary Statistics of salary by gender
+mosaic::favstats (experience ~ gender, data=omega) %>% 
+
+# Dataframe with two rows (male-female) and having as columns gender, mean, SD, sample size, 
+# the t-critical value, the standard error, the margin of error,
+# and the low/high endpoints of a 95% condifence interval
+  mutate(t_critical = qt(0.975,n-1),
+         sd_mean = sd/sqrt(n),
+         margin_of_error = t_critical*sd_mean,
+         ci_lower = mean-margin_of_error,
+         ci_higher = mean+margin_of_error)
+
 
 ```
 
-Based on this evidence, can you conclude that there is a significant difference between the experience of the male and female executives? Perform similar analyses as in the previous section. Does your conclusion validate or endanger your conclusion about the difference in male and female salaries?
+- Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have more experience than the female on average.
+
+```{r}
+# hypothesis testing using t.test() 
+t.test(experience ~ gender, data=omega)
+```
+
+```{r, infer}
+# hypothesis testing using infer package
+obs_diff <- omega %>%
+  specify(experience ~ gender) %>%
+  calculate(stat = "diff in means", order = c("female", "male"))
+
+null_dist <- omega %>%
+  # specify variables
+  specify(experience ~ gender) %>%
+  
+  # assume independence, i.e, there is no difference
+  hypothesize(null = "independence") %>%
+  
+  # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
+  calculate(stat = "diff in means", order = c("female", "male"))
+
+null_dist %>% 
+  visualise()+
+  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
+
+# Warning: Please be cautious in reporting a p-value of 0. This result is an approximation based on the number of `reps` chosen in the `generate()` step.
+p_value <- null_dist %>% 
+  get_pvalue(obs_stat = obs_diff, direction="both")
+p_value
+
+```
+
+- Based on the evidence we can conclude that there is a significant difference between the experience of the male and female executives. This conclusion endangers our previous conclusion that the difference in male and female salaries is based on discrimination.
+
 
 ## Relationship Salary - Experience ?
 
 Someone at the meeting argues that clearly, a more thorough analysis of the relationship between salary and experience is required before any conclusion can be drawn about whether there is any gender-based salary discrimination in the company.
 
-Analyse the relationship between salary and experience. Draw a scatterplot to visually inspect the data
+- Next we analyse the relationship between salary and experience. Here is a scatterplot to visually inspect the data
 
 ```{r, salary_exp_scatter}
 
@@ -507,18 +566,18 @@ omega %>%
 
 ## Check correlations between the data
 
-You can use `GGally:ggpairs()` to create a scatterplot and correlation matrix. Essentially, we change the order our variables will appear in and have the dependent variable (Y), salary, as last in our list. We then pipe the dataframe to `ggpairs()` with `aes` arguments to colour by `gender` and make ths plots somewhat transparent (`alpha  = 0.3`).
+We use `GGally:ggpairs()` to create a scatterplot and correlation matrix. Essentially, we change the order our variables will appear in and have the dependent variable (Y), salary, as last in our list. 
 
 ```{r, ggpairs}
 omega %>% 
   select(gender, experience, salary) %>% #order variables they will appear in ggpairs()
   ggpairs(aes(colour=gender, alpha = 0.3))+
-  theme_bw()
+  theme_bw()+
+  NULL
 ```
 
-> Look at the salary vs experience scatterplot. What can you infer from this plot? Explain in a couple of sentences
-
 - We can see from the graphs showing experience vs salary that the correlation equals to 0.803 and is significantly different from 0 with three stars, which means we are 99% confident that experience is positively correlated with salary.
+
 
 # Challenge 1: Brexit plot
 
