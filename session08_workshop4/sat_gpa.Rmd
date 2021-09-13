@@ -36,7 +36,8 @@ sat_gpa %>%
 How well does high school GPA correlate with freshman GPA?
 
 ```{r hs-gpa-correlation}
-
+sat_gpa %>% 
+  get_correlation(gpa_hs ~ gpa_fy)
 ```
 
 Is the correlation between SAT scores and freshman GPA stronger for men or for women?
@@ -53,7 +54,9 @@ sat_gpa %>%
 Is the correlation between high school GPA and freshman GPA stronger for men or for women?
 
 ```{r hs-gpa-correlation-sex}
-
+sat_gpa %>% 
+  group_by(sex) %>% 
+  summarize(correlation = cor(gpa_hs, gpa_fy))
 ```
 
 
@@ -68,11 +71,28 @@ sat_gpa %>%
 
 Are there any sex-based differences in SAT scores? Are sex-based score differences larger in the verbal test or the math test? (hint: group by sex and use summarize() to calculate the average verbal SAT score and math SAT score for each sex)
 
-```{r sat-score-sex}
+- Yes.
 
+```{r sat-score-sex}
+sat_gpa %>% 
+  group_by(sex) %>% 
+  summarise(avg_ver_sat = mean(sat_verbal),
+            avg_math_sat = mean(sat_math))
+
+  
 ```
 
-Do SAT scores predict (or explain variation in) freshman GPAs? If so, how much college GPA change is associated with changes in SAT scores? (i.e. interpret the slope for the SAT coefficient) How much of the variation in college GPA is explained by this model?
+Do SAT scores predict (or explain variation in) freshman GPAs? 
+
+- Yes.
+
+If so, how much college GPA change is associated with changes in SAT scores? (i.e. interpret the slope for the SAT coefficient) 
+
+- Averagely, the SAT scores increase by 1 and college GPA change will increase by 0.024 accordingly.
+
+How much of the variation in college GPA is explained by this model?  
+
+- 21.1% of the variation is explained.
 
 ```{r model-sat-gpa}
 model_sat_gpa <- lm(gpa_fy ~ sat_total, data = sat_gpa)
@@ -83,37 +103,110 @@ model_sat_gpa %>% get_regression_summaries()
 
 Does a certain type of SAT score have a larger effect on freshman GPAs? (hint: instead of including `sat_total`, use `sat_math` and `sat_verbal` as your explanatory variables)
 
-```{r model-sat-math-verbal}
+The effect of sat_verbal on SAT score is larger by 0.003.
 
+```{r model-sat-math-verbal}
+model_sat_gpa <- lm(gpa_fy ~ sat_verbal + sat_math, data = sat_gpa)
+
+model_sat_gpa %>% get_regression_table()
+model_sat_gpa %>% get_regression_summaries()
 ```
 
 1. Do high school GPAs predict (or explain variation in) freshman GPAs? If so, how much? 
-1. How much of the variation in college GPA is explained by this model?
+
+- high school GPAs can predict freshman GPAs. The coefficient is 0.743.
+
+2. How much of the variation in college GPA is explained by this model?
+
+- 29.5% is explained
 
 ```{r model-hs-college-gpa}
+model <- lm(gpa_fy ~ gpa_hs, data = sat_gpa)
 
+model %>% get_regression_table()
+model %>% get_regression_summaries()
 ```
 
 1. Does the effect of SAT scores on college GPA change when controlling for sex? 
-1. What is the effect of SAT scores in this model? 
-1. What is the effect of sex in this model? 
-1. How much of the variation in college GPA is explained by this model?
+
+- yes, change by 0.002
+
+2. What is the effect of SAT scores in this model? 
+
+- The effect of SAT scores on college GPA is 0.026
+
+3. What is the effect of sex in this model? 
+
+- Male has a lower GPA than female by 0.274
+
+4. How much of the variation in college GPA is explained by this model?
+
+- 24.3% of the variation
 
 ```{r model-sat-sex}
+model_sat_gpa_sex <- lm(gpa_fy ~ sat_total + sex, data = sat_gpa)
 
+model_sat_gpa_sex %>% get_regression_table()
+model_sat_gpa_sex %>% get_regression_summaries()
+
+sat_gpa %>% 
+  ggplot(aes(x=sat_total, y =gpa_fy))+
+  geom_point()+
+  facet_grid(~sex)+
+  geom_smooth(method="lm")
+
+huxreg(model_sat_gpa, model_sat_gpa_sex,
+       statistics = c('#observations' = 'nobs', 
+                      'R squared' = 'r.squared', 
+                      'Adj. R Squared' = 'adj.r.squared', 
+                      'Residual SE' = 'sigma'), 
+       bold_signif = 0.05, 
+       stars = NULL
+) %>% 
+  set_caption('Controlling Sex')
 ```
 
 1. Does the effect of SAT scores on college GPA change when controlling for both high school GPA and sex? 
-1. What is the effect of SAT scores in this model? 
-1. What is the effect of high school GPA in this model? 
-1. What is the effect of sex in this model? 
-1. How much of the variation in college GPA is explained by this model?
+
+- Yes, change by 0.01.
+
+1. What is the effect of SAT scores in this model? 0.016
+
+1. What is the effect of high school GPA in this model? 0.545
+
+1. What is the effect of sex in this model? -0.143(if male)
+
+1. How much of the variation in college GPA is explained by this model? 36.5%
 
 ```{r model-sat-hs-sex}
+model_sat_gpa_sex_hs <- lm(gpa_fy ~ sat_total + sex + gpa_hs, data = sat_gpa)
 
+model_sat_gpa_sex_hs %>% get_regression_table()
+model_sat_gpa_sex_hs %>% get_regression_summaries()
+
+huxreg(model_sat_gpa, model_sat_gpa_sex,model_sat_gpa_sex_hs,
+       statistics = c('#observations' = 'nobs', 
+                      'R squared' = 'r.squared', 
+                      'Adj. R Squared' = 'adj.r.squared', 
+                      'Residual SE' = 'sigma'), 
+       bold_signif = 0.05, 
+       stars = NULL
+) %>% 
+  set_caption('Controlling Sex and high school GPA')
 ```
 
 1. Which model best predicts freshman GPA? How do you know?
+
+`gpa_fy ~ sat_total + sex + gpa_hs` with the largest variance explained.
+
 1. Do women's SAT scores underpredict their freshman GPAs?
+
+If not considering sex, the women's SAT scores would be underpredicted, because the male pull down the average.
+
 1. Should SAT scores be used for college admissions?
+
+We can consider SAT scores as one of the factors, because it has a good prediction power to college GPA. 
+
 1. What else might statistically predict freshman GPA? What else should be taken into account when admitting students?
+
+Backgrounds, family income, ...
