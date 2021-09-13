@@ -8,6 +8,7 @@ library(janitor)
 library(huxtable)
 library(skimr)
 library(car)
+library(ggfortify)
 
 url <- "https://happiness-report.s3.amazonaws.com/2021/DataPanelWHR2021C2.xls"
 
@@ -32,7 +33,7 @@ world_happiness_19 <- world_happiness %>%
 
 world_happiness_19 %>% 
   select(-c(country_name,year)) %>% 
-  ggpairs()
+  ggpairs(alpha = 0.3)
 
 
 # produce summary statistics for life_ladder, a measure of happiness score

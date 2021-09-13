@@ -900,6 +900,6 @@ Here we discuss whether to use the mean or the median to calculate your expected
 Team Members:
 Alex Kubbinga, Clara Moreno Sanchez, Jean Huang, Raghav Mehta, Raina Doshi, Yuan Gao
 
-- Approximately how much time did you spend on this problem set: Too long
-- What, if anything, gave you the most trouble: ANSWER HERE
+- Approximately how much time did you spend on this problem set: Too long (~10 hours)
+- What, if anything, gave you the most trouble: Adjusting tiny details of images is time-consuming
 
