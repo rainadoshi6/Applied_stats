@@ -606,7 +606,7 @@ ylab('Leave % in the 2015 Brexit Referendum') +
   NULL
   
 ```
-```
+
 
 
 # Challenge 2: CDC COVID-19 Public Use Data
@@ -699,7 +699,9 @@ query1_tibble %>%
   # x axis in %
   scale_x_continuous(label=scales::percent_format(accuracy = 1))+
   theme_bw()+
-  labs()+
+  labs(title = "Covid Death % group by age group, sex and presence of co-morbidities",
+       x="",
+       y="")+
   NULL
   
 
@@ -732,7 +734,9 @@ query2_tibble %>%
   # x axis in %
   scale_x_continuous(label=scales::percent_format(accuracy = 1))+
   theme_bw()+
-  labs()+
+  labs(title = "Covid Death % group by age group, sex and ICU admission",
+       x="",
+       y="")+
   NULL
   
 ```
