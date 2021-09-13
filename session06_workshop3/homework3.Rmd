@@ -590,19 +590,16 @@ knitr::include_graphics(here::here("images", "brexit.png"), error = FALSE)
 ```{r load_brexit_data, warning=FALSE, message=FALSE}
 brexit_results <- read_csv(here::here("data","brexit_results.csv"))
 glimpse(brexit_results)
-TestConservative <- t(select(brexit_results,c("Seat","con_2015")))
-TestLabour <- t(select(brexit_results,c("Seat","lab_2015")))
-TestLibDem <- t(select(brexit_results,c("Seat","ld_2015")))
-TestUKIP <- t(select(brexit_results,c("Seat","ukip_2015")))
+brexit_results %>%
   ggplot() + 
-  geom_point(TestConservative,aes(x=leave_share,y=con_2015),colour="blue")+
-  geom_smooth(TestConservative,aes(x=leave_share,y=con_2015),colour="blue")+
-    geom_point(TestLabour, aes(x=leave_share,y=lab_2015), colour="red")+
-  geom_smooth(TestLabour, aes(x=leave_share,y=lab_2015), colour="red")+
-    geom_point(TestLibDem,aes(x=leave_share,y=ld_2015), colour="orange")+
-    geom_smooth(TestLabour, aes(x=leave_share,y=ld_2015), colour="orange")+
-    geom_point(TestUKIP, aes(x=leave_share,y=ukip_2015), colour="yellow")+
-   geom_smooth(TestUKIP,aes(x=leave_share,y=ukip_2015), colour="yellow")+
+  geom_point(aes(x=leave_share,y=con_2015),colour="blue")+
+  geom_smooth(aes(x=leave_share,y=con_2015),colour="blue")+
+    geom_point(aes(x=leave_share,y=lab_2015), colour="red")+
+  geom_smooth(aes(x=leave_share,y=lab_2015), colour="red")+
+    geom_point(aes(x=leave_share,y=ld_2015), colour="orange")+
+    geom_smooth(aes(x=leave_share,y=ld_2015), colour="orange")+
+    geom_point(aes(x=leave_share,y=ukip_2015), colour="yellow")+
+   geom_smooth(aes(x=leave_share,y=ukip_2015), colour="yellow")+
   labs(title = 'How Political Affiliation translates to voting') +
 xlab('Party % in the UK 2015 general election') +
 ylab('Leave % in the 2015 Brexit Referendum') + 
