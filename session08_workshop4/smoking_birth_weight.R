@@ -14,7 +14,7 @@ smoking_birth_weight <- read_csv(here::here("data", "smoking_birth_weight.csv"))
 
 # skimr::skim() gives us variable types, summary statistics, missing values
 # anything that seems off
-skim(smoking_birth_weight)
+skimr::skim(smoking_birth_weight)
 
 # how many mothers were smokers vs non smokers in our sample?
 smoking_birth_weight %>% 
@@ -70,7 +70,6 @@ huxreg(model1, model2, model3, model4, model5, model6,
                       'R squared' = 'r.squared', 
                       'Adj. R Squared' = 'adj.r.squared', 
                       'Residual SE' = 'sigma'), 
-       bold_signif = 0.05, 
-       stars = NULL
+       bold_signif = 0.05
 ) %>% 
   set_caption('Comparison of models')

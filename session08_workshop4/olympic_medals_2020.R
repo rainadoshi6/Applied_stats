@@ -36,7 +36,7 @@ tables <- url %>%
   html_nodes(css="table")
 
 
-# parse HTML tables into a dataframe called polls 
+# parse HTML tables into a dataframe called medals 
 # Use purr::map() to create a list of all tables in URL
 medals <- map(tables, . %>% 
                html_table(fill=TRUE)%>% 
@@ -87,7 +87,7 @@ my_data %>%
 
 
 # medals vs GDP_current USD by income level
-ggplot(my_data, aes(x=gdp_current_usd, y = total, colour = income_level))+
+ggplot(my_data, aes(x=gdp_current_usd, y = total))+
   geom_point()+
   geom_smooth(se=F, method="lm")+
   geom_text_repel(aes(label = value))+
@@ -167,7 +167,7 @@ medals_gdp_per_cap2 <- ggplot(my_data, aes(x=gdp_per_cap_2010, y = total, colour
   theme_bw()+
   scale_x_continuous(labels = scales::dollar_format(suffix = "K",scale = 1e-3))
 
-#patchwork to arrange plots
+# patchwork to arrange plots
 (medals_population + medals_population2) / (medals_gdp + medals_gdp2) / (medals_gdp_per_cap + medals_gdp_per_cap2)
 
 
