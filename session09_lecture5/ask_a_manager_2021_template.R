@@ -1,4 +1,3 @@
-library(googlesheets4)
 library(tidyverse)
 library(janitor) 
 library(skimr)
@@ -7,14 +6,9 @@ library(broom)
 library(car)
 library(ggfortify)
 
-# use googlesheets4 to get data
-url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
-googlesheets4::gs4_auth() # google sheets authorisation
-
 # load "Ask a A Manager 2021 Survey" googlesheet
 # https://www.askamanager.org/
-ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>% 
-  janitor::clean_names()
+ask_a_manager_2021 <- read_csv(here("data","ask_a_manager.csv"))
 
 skimr::skim(ask_a_manager_2021)
 
