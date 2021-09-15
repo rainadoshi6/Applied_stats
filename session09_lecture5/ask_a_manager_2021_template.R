@@ -13,6 +13,17 @@ ask_a_manager_2021 <- read_csv(here("data","ask_a_manager.csv"))
 
 skimr::skim(ask_a_manager_2021)
 
+
+#Division of Work
+#1.EDA of every variable with plots
+#2.Statistical tests of salary and other variables (t-test, bootstrap)
+#3 Regression (using different variables and comparing them) (SPLIT IN train and test!!!!)
+#4 Advanced Models (rlm, logit) and Compare All Models(3&4)
+#5 Visualize the Models
+#6 Write Read Me Executive Summary
+#7 Create Presentation 
+
+
 # How is salary distributed?
 
 ggplot(ask_a_manager_2021, aes(x=annual_salary))+
