@@ -25,7 +25,7 @@ skimr::skim(ask_a_manager_2021)
 
 ```
 
-# Data cleaning
+# Data cleaning (exchange rate: Alex)
 
 remove missing values.
 
@@ -71,7 +71,7 @@ only keep the commonly used currencies and standardize the number
 
 ```{r}
 # transform all the currencies into USD and only keep the commonly used currencies
-# todo
+# todo (Alex)
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   filter(industry %in% industry_list$industry &
            currency=="USD" &
