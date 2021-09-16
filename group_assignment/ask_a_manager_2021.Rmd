@@ -13,13 +13,16 @@ library(countrycode) # to clean up country names
 library(broom)
 library(car)
 library(ggfortify)
+library(mosaic)
+library(dplyr)
+
 ```
 
 
 ```{r}
 # load "Ask a A Manager 2021 Survey" googlesheet
 # https://www.askamanager.org/
-ask_a_manager_2021 <- read_csv(here("data","ask_a_manager.csv"))
+ask_a_manager_2021 <- read_csv(here::here("data","ask_a_manager.csv"))
 
 skimr::skim(ask_a_manager_2021)
 
@@ -46,7 +49,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
     how_old_are_you = factor(how_old_are_you,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")),
     years_of_experience_in_field = factor(years_of_experience_in_field,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
     overall_years_of_professional_experience = factor(overall_years_of_professional_experience,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
-    highest_level_of_education_completed = factor(highest_level_of_education_completed, labels=c("High School","Some college","College degree","Master's degree","Professional degree (MD, JD, etc.)","PhD")),
+    highest_level_of_education_completed = factor(highest_level_of_education_completed, labels=c("High School","Some college","College degree","Master's degree","PhD","Professional degree")),
     log_annual_salary = log(annual_salary)
   ) %>% 
   janitor::clean_names() # clean columns names
@@ -177,6 +180,24 @@ right skewed distribution.
 
 ## Education (Jean)
 
+```{r Education_salary, warning=FALSE, echo=FALSE}
+
+ask_a_manager_2021 %>% 
+  filter(gender %in% c("Man", "Woman")) %>% 
+  mutate(sex = factor (gender, labels = c("Man", "Woman"))) %>% 
+  rename(Education = highest_level_of_education_completed) %>% 
+  group_by(Education, gender) %>% 
+  summarise (median_salary_by_edu = median (annual_salary),
+             mean_salary_by_edu = mean(annual_salary)) %>% 
+  ggplot () +
+  geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
+  geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
+  theme_bw()+
+  NULL
+
+
+```
+
 
 ## Race (Clara)
 
@@ -224,6 +245,9 @@ t.test(annual_salary ~ gender, data = ask_a_manager_2021)
 
 
 ## Gender vs Education (Jean)
+
+
+
 
 ## Race vs Salary (Raina)
 
