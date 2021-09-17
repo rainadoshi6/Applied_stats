@@ -179,7 +179,32 @@ right skewed distribution.
 
 
 ## Race (Clara)
+```{r}
+ask_a_manager_2021 %>% 
+  group_by(race) %>% 
+  filter(n() > 500) %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(y=count, x=race, color=race))+
+  geom_col() +
+  theme(legend.position = "none") +
+  labs(x="Race", y="Count", title="Count by Race", subtitle = "Races with > 500 Respondents")+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
+  NULL
+```
 
+### Race and Mean Salary 
+```{r}
+ask_a_manager_2021 %>% 
+  group_by(race) %>% 
+  filter(n() > 500) %>% 
+  summarise(annual_average_delta = mean(delta, na.rm=TRUE)) %>% 
+  ggplot(aes(y=mean, x=race, color=race))+
+  geom_col() +
+  theme(legend.position = "none") +
+  labs(x="Race", y="Count", title="Count by Race", subtitle = "Races with > 500 Respondents")+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
+  NULL
+```
 
 
 ## Location (Alex)

@@ -46,42 +46,42 @@ library(infer)
 
 
 
-# Climate change and temperature anomalies 
+# Analyzing Climate Change through Temperature Anomalies 
 
-We want to analyse the climate change in the period between 1951-1980
+By using R Studio and ggplot to analyze temperature variances between 1951-1980, the effects of climate change are illustrated. 
 
-First, we load the data from *Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies* in the Northern Hemisphere at [NASA's Goddard Institute for Space Studies](https://data.giss.nasa.gov/gistemp). The [tabular data of temperature anomalies can be found here](https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.txt)
+I will use date from *Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies* in the Northern Hemisphere at [NASA's Goddard Institute for Space Studies](https://data.giss.nasa.gov/gistemp). The [tabular data of temperature anomalies can be found here](https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.txt)
 
 
 ```{r weather_data, cache=TRUE}
 
 weather <- 
-  read_csv("https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.csv", 
-           skip = 1, 
-           na = "***")
+  read_csv("https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.csv", #retrieving data 
+           skip = 1, #skipping first line 
+           na = "***") 
 
 ```
-We modified the data by adding `skip` and `na`, and we select the year and the twelve month variables from the dataset while deleting the rest as they are non-relevant. 
+I have modified the data by adding `skip` and `na`, and we select the year and the twelve month variables from the dataset while deleting the rest as they are non-relevant. 
 
-
-```{r tidyweather}
+## Data Frame 
+```{r tidyweather,}
 tidyweather <- weather %>%  select(1:13) %>% pivot_longer(cols=2:13, names_to = "Month", values_to="delta")
 
 tidyweather
 
 ```
-Now we inspect the dataframe, it has three columns indicating the Year, Month and the delta value of climate change which shows how much the temperature varys from the base year.
 
-## Plotting Information
 
-We plot the data using a time-series scatter plot, and have added a trendline. We first created a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
+## Plot of Date and Delta Values 
+
+To illustrate the trend of temperature anomalies, I will plot the data using a time-series scatter plot, and have add a trendline. 
 
 
 
 ```{r scatter_plot,warning=FALSE}
-# convert the date time datatype
+# convert the date time datatype to plot chronologically
 tidyweather <- tidyweather %>%
-  mutate(date = ymd(paste(as.character(Year), Month, "1")),
+  mutate(date = ymd(paste(as.character(Year), Month, "1")), 
          month = month(date, label=TRUE),
          year = year(date))
 
@@ -98,8 +98,10 @@ ggplot(tidyweather, aes(x=date, y = delta))+
   NULL
 
 ```
+As evidenced in the plot, the change in temperature from out base year were negative before the 1970s and then temperatures started to increase steeply afterwards. 
 
-Now we will visualize the data in a per-month basis, to see if the effect of increasing temperature is more pronounced in some months than others.  
+
+Visualizing the data on a per-month basis will help see if the effect of increasing temperature is more pronounced in some months than others.  
 
 ```{r facet_wrap, warning=FALSE}
 #plotting the by-month scatter plot of data
@@ -113,23 +115,20 @@ ggplot(tidyweather, aes(x=date, y = delta))+
     x = "Date",
     y = "Temperature deviation"
   )+
-  facet_wrap(~month)+
+  facet_wrap(~month)+       #Faceting on a per month basis 
   NULL
 
 ```
- - From the above chart we can see the temperature deviation is smaller from May to August as the data points are less spread out on the y axis.
+From the above chart one can see the temperature deviation is smaller from May to August compared to September to December. This means that the Spring and Summer seasons have been more prone to greater temperature anomalies than the Fall and Winter seasons. 
  
-To study the historical data, we found it useful to group data into different time periods. Therefore, we created a new data frame called `comparison` that groups data in five time periods: 1881-1920, 1921-1950, 1951-1980, 1981-2010 and 2011-present. 
-
- We removed data before 1800 and before using `filter`. Then, we use the `mutate` function to create a new variable `interval` which contains information on which period each observation belongs to. We can assign the different periods using `case_when()`.
-
+To study the historical data, I will group data into different time periods.
 
 ```{r intervals}
 
 comparison <- tidyweather %>% 
   filter(Year>= 1881) %>%     #remove years prior to 1881
   #create new variable 'interval', and assign values based on criteria below:
-  mutate(interval = case_when(
+  mutate(interval = case_when(           #assigning difference periods 
     Year %in% c(1881:1920) ~ "1881-1920",
     Year %in% c(1921:1950) ~ "1921-1950",
     Year %in% c(1951:1980) ~ "1951-1980",
