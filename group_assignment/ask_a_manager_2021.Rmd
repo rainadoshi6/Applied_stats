@@ -246,6 +246,26 @@ t.test(annual_salary ~ gender, data = ask_a_manager_2021)
 
 ## Gender vs Education (Jean)
 
+We want to look at the relationship between one's gender and education degree. 
+
+```{r t_test_for_gender_education}
+
+ask_a_manager_2021_education <- ask_a_manager_2021 %>% 
+  filter(gender !="Non-binary") %>%
+  mutate(high_school = if_else(highest_level_of_education_completed == "High School", "Yes", "No")) %>% 
+  select(gender,high_school)
+  # group_by(gender) %>% 
+  # summarise(n=sum(high_school == "Yes"))
+  # group_by (gender) %>%
+  # summarise (highschool_degree = sum(highest_level_of_education_completed == "High School", na.rm = TRUE)/n())
+
+ask_a_manager_2021_education
+
+prop.test(~gender , data = ask_a_manager_2021_education, success = "Yes")
+
+
+```
+
 
 
 
@@ -254,6 +274,23 @@ t.test(annual_salary ~ gender, data = ask_a_manager_2021)
 > wisely choose the race. like white vs. not white
 
 ## Race vs Education (Jean)
+
+We want to look at the relationship between one's race and education degree. 
+
+```{r t_test_for_race_education}
+
+ask_a_manager_2021_race <- ask_a_manager_2021 %>% 
+  mutate(if_white = if_else(race == "White", "Yes", "No"),
+         high_school = if_else(highest_level_of_education_completed == "High School", "Yes", "No")) %>% 
+  select(if_white,high_school)
+
+ask_a_manager_2021_race
+
+prop.test(~if_white, data = ask_a_manager_2021_race, success = "Yes")
+
+
+```
+
 
 ## Changed Industry? vs salary (Raghav)
 
