@@ -16,6 +16,7 @@ library(ggfortify)
 library(mosaic)
 library(dplyr)
 library(huxtable)
+library(ggthemes)
 library(tidyquant)
 
 ```
@@ -70,7 +71,8 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
     age_group = factor(how_old_are_you,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")),
     field_exp = factor(years_of_experience_in_field,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
     pro_exp = factor(overall_years_of_professional_experience,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
-    education = factor(highest_level_of_education_completed, labels=c("High School","Some college","College degree","Master's degree","PhD","Professional degree")),
+    education = factor(highest_level_of_education_completed, labels=c("High School","Some college","College degree","Master's degree","Professional degree", "PhD")),
+    higher_edu = ifelse(education %in% c("College degree","Master's degree", "PhD", "Professional degree"),1,0),
     salary = annual_salary,
     log_salary = log(annual_salary)
   ) %>% 
@@ -218,7 +220,7 @@ gridExtra::grid.arrange(g1,g2,g3,g4)
 
 right skewed distribution. 
 
-## Industry (Yuan)
+## Industry(Yuan)
 
 ```{r}
 ask_a_manager_2021 %>% 
@@ -227,30 +229,53 @@ ask_a_manager_2021 %>%
   geom_col()
 ```
 
-## Gender vs Industry (Yuan)
+## Salary ,Gender and Industry (Yuan)
 
-```{r, fig.height= = 20}
-# salary gap
-ask_a_manager_2021 %>% 
+```{r, fig.width=5}
+# Industries of top average salary for Man and Woman
+salary_table <- ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary)) %>% 
-  ggplot(aes(y=fct_reorder(industry,avg_salary), x=avg_salary,fill=gender))+
-  geom_bar(position="dodge", stat="identity")+
-  scale_fill_manual(breaks = c("Man","Woman"),
-                    values = c("sky blue", "pink"))+
+            avg_salary = mean(salary),
+            higher_edu_prop = sum(higher_edu)/n()) %>% 
+  pivot_wider(id_cols = 1:5,
+              names_from = gender,
+              values_from = count:higher_edu_prop)
+  
+
+g_man <- salary_table %>% 
+  ggplot()+
+  geom_bar(aes(y=fct_reorder(industry,avg_salary_Man), x=avg_salary_Man,fill=higher_edu_prop_Man), position="dodge", stat="identity")+
+  scale_fill_gradient(low="sky blue", high="blue")+
   labs(
-    title="",
-    x="",
-    y=""
+    title="Man",
+    x="Annual Salary $",
+    y="Industry"
   )+
+  theme_wsj()+
+  theme(legend.position="bottom")+
   NULL
+
+g_woman <- salary_table %>% 
+  ggplot()+
+  geom_bar(aes(y=fct_reorder(industry,avg_salary_Woman), x=avg_salary_Woman,fill=higher_edu_prop_Woman), position="dodge", stat="identity")+
+  scale_fill_gradient(low="pink", high="red")+
+  labs(
+    title="Woman",
+    x="Annual Salary $",
+    y="Industry"
+  )+
+  theme_wsj()+
+  theme(legend.position="bottom")+
+  NULL
+
+gridExtra::grid.arrange(g_man, g_woman, nrow=1)
 ```
 
 
 
 ```{r}
-# salary gap
+# salary gap in different industries
 ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
@@ -263,19 +288,20 @@ ask_a_manager_2021 %>%
          salary_gap = avg_salary_Man - avg_salary_Woman) %>% 
   ggplot(aes(y=fct_reorder(industry,salary_gap), x=salary_gap,fill=male_prop))+
   geom_col()+
-  geom_point(aes(y=fct_reorder(industry,size),x=size*10))+
+  
+  # geom_point(aes(y=fct_reorder(industry,size),x=size*10))+
+  
   scale_x_continuous(
-    # Features of the first axis
-    name = "Annual Salary (barplot)",
-    # Add a second axis and specify its features
-    sec.axis = sec_axis(trans = ~., name="Sample size (point)")
+    breaks = seq(-20000,40000,5000)
   ) +
   scale_fill_gradient(low="pink", high="sky blue")+
   labs(
-    title="",
-    x="",
+    title="TITLE",
+    x="Salary Gap in $",
     y=""
   )+
+  theme_wsj()+
+  theme(legend.position="bottom")+
   NULL
 
 
