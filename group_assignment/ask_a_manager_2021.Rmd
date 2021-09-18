@@ -205,7 +205,7 @@ ask_a_manager_2021 %>%
   group_by(race) %>% 
   filter(n() > 500) %>% 
   summarise(count=n()) %>% 
-  ggplot(aes(y=count, x=race, color=race))+
+  ggplot(aes(y=count, x=race, fill=race))+
   geom_col() +
   theme(legend.position = "none") +
   labs(x="Race", y="Count", title="Count by Race", subtitle = "Races with > 500 Respondents")+
