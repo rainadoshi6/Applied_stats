@@ -193,6 +193,7 @@ ask_a_manager_2021 %>%
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
   geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
   theme_bw()+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   NULL
 
 
@@ -200,6 +201,7 @@ ask_a_manager_2021 %>%
 
 
 ## Race (Clara)
+### Count 
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
@@ -212,21 +214,39 @@ ask_a_manager_2021 %>%
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 ```
+### Mean Salary
+```{r}
+ask_a_manager_2021 %>% 
+  group_by(race) %>% 
+  filter(n() > 500) %>% 
+  summarise (median_salary_by_race = median (annual_salary),
+             mean_salary_by_race = mean(annual_salary)) %>% 
+  ggplot(aes(y=median_salary_by_race, x=race, color=race))+
+  geom_point() +
+  theme(legend.position = "none") +
+  labs(x="Race", y="Medium Salary", title="Salary by Race", subtitle = "Races with > 500 Respondents")+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
+  NULL
 
+```
 ### Race and Mean Salary 
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
-  summarise(annual_average_delta = mean(delta, na.rm=TRUE)) %>% 
-  ggplot(aes(y=mean, x=race, color=race))+
-  geom_col() +
-  theme(legend.position = "none") +
-  labs(x="Race", y="Count", title="Count by Race", subtitle = "Races with > 500 Respondents")+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
+  ggplot(aes(y = log(annual_salary), x=race))+
+  geom_boxplot() +
+  theme_bw()+
+  theme(legend.position = "none")+
+  labs(title = "Distribution of Annual Salaries by Racial Group",
+       x = "Film Rating",
+       y = " ")+
   NULL
 ```
 
+```{r}
+
+```
 
 ## Location (Alex)
 
@@ -255,18 +275,81 @@ ask_a_manager_2021 %>%
 
 ## Gender vs Salary (Clara)
 
+### General Statistics & Boxplot
+```{r}
+mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
+
+```
+
 ```{r}
 ask_a_manager_2021 %>% 
   ggplot(aes(x=gender,y=log_annual_salary))+
   geom_boxplot()
-```
 
-```{r}
+ask_a_manager_2021
+
+```
+***For our following analysis, we will be comparing data from the male gender "Man" with data from the female gender "Woman." We will filter out the data on those that are non binary.***
+
+### T-Test
+
+```{r, t_test_for_gender_salary} }
+
 ask_a_manager_2021 <- ask_a_manager_2021 %>%
   filter(gender!="Non-binary")
 t.test(annual_salary ~ gender, data = ask_a_manager_2021)
 ```
 
+### Confidence Intervals 
+```{r, gender vs. salary confidence intervals}
+ 
+#mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
+ask_a_manager_2021_gender <- ask_a_manager_2021 %>%
+  mutate(gender2 = case_when(
+  gender  == "Man" ~ "1",
+ gender == "Woman" ~ "0",
+  TRUE ~ "NA"
+)) %>%
+  mutate(gender2 = as.numeric(gender2))
+
+
+mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021_gender) %>%
+mutate(t_critical = qt(0.975,n-1),
+         sd_mean = sd/sqrt(n),
+         margin_of_error = t_critical*sd_mean,
+         ci_lower = mean-margin_of_error,
+         ci_higher = mean+margin_of_error)
+
+```
+Observation: Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have higher salary than the female on average.
+
+### Bootstrap Test 
+```{r}
+# hypothesis testing using infer package
+diff <- ask_a_manager_2021_gender %>%
+  specify(annual_salary ~ gender) %>%
+  calculate(stat = "diff in means", order = c("Woman", "Man"))
+
+set.seed(1234)
+salary_in_null_world <- ask_a_manager_2021_gender %>%
+  filter(gender !="Non-binary") %>%
+  specify(annual_salary ~ gender) %>%
+   # assuming independence of gender and salary
+  hypothesize(null = "independence") %>%
+   # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  # calculate statistic of difference, namely "diff in means"
+   calculate(stat = "diff in means", order = c("Woman", "Man")) 
+
+salary_in_null_world %>% 
+  visualise()+
+  shade_p_value(obs_stat = diff, direction = "two-sided")
+  
+p_value <- salary_in_null_world %>% 
+  get_pvalue(obs_stat = diff, direction="both")
+p_value
+```
+Observation: Our null hypothesis is that the difference of omega between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. There is difference between the average male and female salary.
 
 
 ## Gender vs Education (Jean)
