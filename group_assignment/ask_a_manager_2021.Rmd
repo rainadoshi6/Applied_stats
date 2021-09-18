@@ -15,6 +15,7 @@ library(car)
 library(ggfortify)
 library(mosaic)
 library(dplyr)
+library(huxtable)
 
 ```
 
@@ -50,13 +51,13 @@ ask_a_manager_2021 <- ask_a_manager_2021[-which(abs(scale(ask_a_manager_2021$ann
 
 ```{r}
 # using quantile. remove data larger than 75%+1.5*IQR or smaller than 25%-1.5*IQR
-Q <- quantile(ask_a_manager_2021$annual_salary, probs=c(.25, .75))
-iqr <- IQR(ask_a_manager_2021$annual_salary)
-up <-  Q[2]+1.5*iqr # Upper Range  
-ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  filter(annual_salary>=low & annual_salary<=up)
+# Q <- quantile(ask_a_manager_2021$salary, probs=c(.25, .75))
+# iqr <- IQR(ask_a_manager_2021$salary)
+# up <-  Q[2]+1.5*iqr # Upper Range  
+# up <-  Q[1]-1.5*iqr # Upper Range  
+# ask_a_manager_2021 <- ask_a_manager_2021 %>% 
+#   filter(salary>=low & salary<=up)
 ```
-
 
 
 transform into ordered `factor` datatype
@@ -65,11 +66,12 @@ transform into ordered `factor` datatype
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   mutate(
     country = countrycode::countryname(country),
-    how_old_are_you = factor(how_old_are_you,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")),
-    years_of_experience_in_field = factor(years_of_experience_in_field,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
-    overall_years_of_professional_experience = factor(overall_years_of_professional_experience,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
-    highest_level_of_education_completed = factor(highest_level_of_education_completed, labels=c("High School","Some college","College degree","Master's degree","PhD","Professional degree")),
-    log_annual_salary = log(annual_salary)
+    age_group = factor(how_old_are_you,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")),
+    field_exp = factor(years_of_experience_in_field,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
+    pro_exp = factor(overall_years_of_professional_experience,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")),
+    education = factor(highest_level_of_education_completed, labels=c("High School","Some college","College degree","Master's degree","PhD","Professional degree")),
+    salary = annual_salary,
+    log_salary = log(annual_salary)
   ) %>% 
   janitor::clean_names() # clean columns names
 ```
@@ -97,14 +99,13 @@ only keep the commonly used currencies and standardize the number
 # transform all the currencies into USD and only keep the commonly used currencies
 # todo (Alex)
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  filter(industry %in% industry_list$industry &
-           currency=="USD" &
+  filter(currency=="USD" &
            !is.na(country))
 
 # filter out outliers of annual salary
 # regression for both datasets
 # ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-#   filter(annual_salary>1000 & annual_salary<1000000)
+#   filter(salary>1000 & salary<1000000)
 # todo
 
 ```
@@ -116,7 +117,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 ```{r}
 # Some quick counts, groups, etc
 ask_a_manager_2021 %>% 
-  count(how_old_are_you, sort=TRUE) %>% 
+  count(age_group, sort=TRUE) %>% 
   mutate(percent = 100* n/sum(n))
 
 # 'country' 
@@ -129,9 +130,9 @@ ask_a_manager_2021 %>%
   count(city, sort=TRUE) %>% 
   mutate(percent = 100* n/sum(n))
 
-# highest_level_of_education_completed 
+# education 
 ask_a_manager_2021 %>% 
-  count(highest_level_of_education_completed) %>% 
+  count(education) %>% 
   mutate(percent = 100* n/sum(n))%>% 
   arrange(desc(percent))
 
@@ -147,15 +148,15 @@ ask_a_manager_2021 %>%
   mutate(percent = 100* n/sum(n))%>% 
   arrange(desc(percent))
 
-# overall_years_of_professional_experience 
+# pro_exp 
 ask_a_manager_2021 %>% 
-  count(overall_years_of_professional_experience ) %>% 
+  count(pro_exp ) %>% 
   mutate(percent = 100* n/sum(n))%>% 
   arrange(desc(percent))
 
-# years_of_experience_in_field  
+# field_exp  
 ask_a_manager_2021 %>% 
-  count(years_of_experience_in_field  ) %>% 
+  count(field_exp  ) %>% 
   mutate(percent = 100* n/sum(n))%>% 
   arrange(desc(percent))
 
@@ -167,28 +168,28 @@ How is salary distributed?
 
 ```{r}
 
-favstats(ask_a_manager_2021$annual_salary) # find a really rich guy here
+favstats(ask_a_manager_2021$salary) # find a really rich guy here
 
 
 # density
-g1<-ggplot(ask_a_manager_2021, aes(x=annual_salary))+
+g1 <- ggplot(ask_a_manager_2021, aes(x=salary))+
   geom_density()+
   NULL
 #cdf
-g2<-ask_a_manager_2021 %>% 
-  slice_min(order_by = annual_salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
-  ggplot(aes(x=annual_salary))+
+g2 <- ask_a_manager_2021 %>% 
+  slice_min(order_by = salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
+  ggplot(aes(x=salary))+
   stat_ecdf()+
   NULL
 
 # taking log is better
-g3<-ggplot(ask_a_manager_2021, aes(x=log(annual_salary)))+
+g3 <- ggplot(ask_a_manager_2021, aes(x=log(salary)))+
   geom_density()+
   NULL
 
-g4<-ask_a_manager_2021 %>% 
-  slice_min(order_by = annual_salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
-  ggplot(aes(x=log(annual_salary)))+
+g4 <- ask_a_manager_2021 %>% 
+  slice_min(order_by = salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
+  ggplot(aes(x=log(salary)))+
   stat_ecdf()+
   NULL
 
@@ -208,11 +209,32 @@ ask_a_manager_2021 %>%
 
 ## Gender vs Industry (Yuan)
 
-```{r}
+```{r, fig.height= = 20}
+# salary gap
 ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(annual_salary)) %>% 
+            avg_salary = mean(salary)) %>% 
+  ggplot(aes(y=fct_reorder(industry,avg_salary), x=avg_salary,fill=gender))+
+  geom_bar(position="dodge", stat="identity")+
+  scale_fill_manual(breaks = c("Man","Woman"),
+                    values = c("sky blue", "pink"))+
+  labs(
+    title="",
+    x="",
+    y=""
+  )+
+  NULL
+```
+
+
+
+```{r}
+# salary gap
+ask_a_manager_2021 %>% 
+  group_by(industry, gender) %>% 
+  summarise(count = n(),
+            avg_salary = mean(salary)) %>% 
   pivot_wider(id_cols = 1:4,
               names_from = gender,
               values_from = count:avg_salary) %>% 
@@ -224,9 +246,9 @@ ask_a_manager_2021 %>%
   geom_point(aes(y=fct_reorder(industry,size),x=size*10))+
   scale_x_continuous(
     # Features of the first axis
-    name = "Annual Salary",
+    name = "Annual Salary (barplot)",
     # Add a second axis and specify its features
-    sec.axis = sec_axis(trans = ~., name="Sample size")
+    sec.axis = sec_axis(trans = ~., name="Sample size (point)")
   ) +
   scale_fill_gradient(low="pink", high="sky blue")+
   labs(
@@ -235,6 +257,8 @@ ask_a_manager_2021 %>%
     y=""
   )+
   NULL
+
+
 ```
 
 ## Education (Jean)
@@ -244,10 +268,10 @@ ask_a_manager_2021 %>%
 ask_a_manager_2021 %>% 
   filter(gender %in% c("Man", "Woman")) %>% 
   mutate(sex = factor (gender, labels = c("Man", "Woman"))) %>% 
-  rename(Education = highest_level_of_education_completed) %>% 
+  rename(Education = education) %>% 
   group_by(Education, gender) %>% 
-  summarise (median_salary_by_edu = median (annual_salary),
-             mean_salary_by_edu = mean(annual_salary)) %>% 
+  summarise (median_salary_by_edu = median (salary),
+             mean_salary_by_edu = mean(salary)) %>% 
   ggplot () +
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
   geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
@@ -273,6 +297,7 @@ ask_a_manager_2021 %>%
 ```
 
 ### Race and Mean Salary 
+
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
@@ -316,14 +341,14 @@ ask_a_manager_2021 %>%
 
 ```{r}
 ask_a_manager_2021 %>% 
-  ggplot(aes(x=gender,y=log_annual_salary))+
+  ggplot(aes(x=gender,y=log_salary))+
   geom_boxplot()
 ```
 
 ```{r}
 ask_a_manager_2021 <- ask_a_manager_2021 %>%
   filter(gender!="Non-binary")
-t.test(annual_salary ~ gender, data = ask_a_manager_2021)
+t.test(salary ~ gender, data = ask_a_manager_2021)
 ```
 
 
@@ -334,23 +359,20 @@ We want to look at the relationship between one's gender and education degree.
 
 ```{r t_test_for_gender_education}
 
-ask_a_manager_2021_education <- ask_a_manager_2021 %>% 
-  filter(gender !="Non-binary") %>%
-  mutate(high_school = if_else(highest_level_of_education_completed == "High School", "Yes", "No")) %>% 
+ask_a_manager_2021 <- ask_a_manager_2021 %>% 
+  mutate(high_school = if_else(education == "High School", "Yes", "No")) %>% 
   select(gender,high_school)
   # group_by(gender) %>% 
   # summarise(n=sum(high_school == "Yes"))
   # group_by (gender) %>%
-  # summarise (highschool_degree = sum(highest_level_of_education_completed == "High School", na.rm = TRUE)/n())
+  # summarise (highschool_degree = sum(education == "High School", na.rm = TRUE)/n())
 
-ask_a_manager_2021_education
+ask_a_manager_2021
 
-prop.test(~gender , data = ask_a_manager_2021_education, success = "Yes")
+prop.test(~gender , data = ask_a_manager_2021, success = "Yes")
 
 
 ```
-
-
 
 
 ## Race vs Salary (Raina)
@@ -363,14 +385,13 @@ We want to look at the relationship between one's race and education degree.
 
 ```{r t_test_for_race_education}
 
-ask_a_manager_2021_race <- ask_a_manager_2021 %>% 
-  mutate(if_white = if_else(race == "White", "Yes", "No"),
-         high_school = if_else(highest_level_of_education_completed == "High School", "Yes", "No")) %>% 
+ask_a_manager_2021 <- ask_a_manager_2021 %>% 
+  mutate(if_white = if_else(race == "White", "Yes", "No")) %>% 
   select(if_white,high_school)
 
-ask_a_manager_2021_race
+ask_a_manager_2021
 
-prop.test(~if_white, data = ask_a_manager_2021_race, success = "Yes")
+prop.test(~if_white, data = ask_a_manager_2021, success = "Yes")
 
 
 ```
@@ -380,24 +401,18 @@ prop.test(~if_white, data = ask_a_manager_2021_race, success = "Yes")
 
 
 
-```{r}
-colnames(ask_a_manager_2021)
-```
-
-
-
 # Regression Analysis (Yuan)
 
 ```{r}
-
-m1 <- lm(annual_salary ~ highest_level_of_education_completed, data=ask_a_manager_2021)
-m2 <- lm(annual_salary ~ highest_level_of_education_completed+how_old_are_you, data=ask_a_manager_2021)
-m3 <- lm(annual_salary ~ highest_level_of_education_completed+gender, data=ask_a_manager_2021)
-m4 <- lm(annual_salary ~ highest_level_of_education_completed+gender+, data=ask_a_manager_2021)
+reg_data <- ask_a_manager_2021 %>% 
+  mutate(country = ifelse(country=="US","US","Non-US"))
+m1 <- lm(salary ~ education, data=reg_data)
+m2 <- lm(salary ~ education+age_group, data=reg_data)
+m3 <- lm(salary ~ education+gender, data=reg_data)
+m4 <- lm(salary ~ education+gender+country, data=reg_data)
 
 
 huxreg(m1, m2, m3, m4,
-       leave_politics, leave_everything,final_model,
        statistics = c('#observations' = 'nobs', 
                       'R squared' = 'r.squared', 
                       'Adj. R Squared' = 'adj.r.squared', 
