@@ -17,6 +17,7 @@ library(mosaic)
 library(dplyr)
 library(huxtable)
 library(ggthemes)
+library(tidyquant)
 
 ```
 
@@ -96,10 +97,24 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 ```
 
 only keep the commonly used currencies and standardize the number
+```{r}
+av_api_key("DLTJZL3OWXJP607Q")
+tiingo_api_key('<your-api-key>')
+tq_get_options()
+tq_get("USD/EUR", get = "tiingo", from="2021-01-01", to="2021-01-15")
+#
+tq_get("USD/EUR", get = "alphavantage", av_fun = "FX_DAILY", from_symbol="EUR")
+
+ask_a_manager_2021 %>% 
+  count(currency, sort=TRUE) %>% 
+  mutate(percent = 100* n/sum(n))
+```
 
 ```{r}
 # transform all the currencies into USD and only keep the commonly used currencies
 # todo (Alex)
+
+
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   filter(currency=="USD" &
            !is.na(country))
@@ -116,14 +131,19 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 
 ## Counts
 
-```{r}
+```{r, fig.width=3}
 # Some quick counts, groups, etc
 ask_a_manager_2021 %>% 
   count(age_group, sort=TRUE) %>% 
-  mutate(percent = 100* n/sum(n))
+  mutate(percent = 100* n/sum(n)) %>% 
+  ggplot(aes(x=fct_reorder(age_group,-n), y=n)) +
+  geom_bar(stat="identity") + labs(title = "Age distribution of Ask a Manager survey respondents",                                                 x="Age group",
+                  y="Frequency",                                                  caption = "Source:Askamanager.com")
+
+
 
 # 'country' 
-ask_a_manager_2021 %>% 
+ask_a_manager_2021 %>%
   count(country, sort=TRUE) %>% 
   mutate(percent = 100* n/sum(n))
 
@@ -339,6 +359,33 @@ ask_a_manager_2021 %>%
 
 
 ## Location (Alex)
+```{r, }
+#This package is useful for creating a map of the USA
+library(usmap)
+library(ggrepel)
+
+#create df of the list of states with >10 occurrences 
+#This allows us to get data for actual states as many data entry errors
+#many individuals put multiple states and this helps to fix that
+states <- ask_a_manager_2021 %>% 
+  group_by(state) %>%
+  filter(!is.na(state)) %>%
+  filter(n()>10) %>% 
+  summarise(mean_salary = mean(salary),
+            count_state = count(state))
+
+states$fips <- fips(states$state)
+statesalarymap <- states %>% select(state,mean_salary)
+
+plot_usmap(data=statesalarymap, values="mean_salary", color="red") + scale_fill_continuous(
+    low = "white",
+    high = "red",
+    name = "Mean Salary") +
+  theme(legend.position = "right") +
+  labs(title="Map of US States based on Average Salary")
+
+
+```
 
 > MAP
 
