@@ -16,6 +16,7 @@ library(ggfortify)
 library(mosaic)
 library(dplyr)
 library(huxtable)
+library(ggthemes)
 
 ```
 
@@ -198,7 +199,7 @@ gridExtra::grid.arrange(g1,g2,g3,g4)
 
 right skewed distribution. 
 
-## Industry (Yuan)
+## Industry(Yuan)
 
 ```{r}
 ask_a_manager_2021 %>% 
@@ -207,30 +208,45 @@ ask_a_manager_2021 %>%
   geom_col()
 ```
 
-## Gender vs Industry (Yuan)
+## Salary ,Gender and Industry (Yuan)
 
-```{r, fig.height= = 20}
-# salary gap
-ask_a_manager_2021 %>% 
+```{r, fig.width=5}
+# Industries of top average salary for Man and Woman
+salary_table <- ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary)) %>% 
-  ggplot(aes(y=fct_reorder(industry,avg_salary), x=avg_salary,fill=gender))+
-  geom_bar(position="dodge", stat="identity")+
-  scale_fill_manual(breaks = c("Man","Woman"),
-                    values = c("sky blue", "pink"))+
+            avg_salary = mean(salary)) 
+
+g_man <- salary_table %>% 
+  filter(gender == "Man") %>% 
+  ggplot(aes(y=fct_reorder(industry,avg_salary), x=avg_salary))+
+  geom_bar(position="dodge", stat="identity",fill="sky blue")+
   labs(
-    title="",
-    x="",
-    y=""
+    title="Man",
+    x="Annual Salary $",
+    y="Industry"
   )+
+  theme_wsj()+
   NULL
+g_woman <- salary_table %>% 
+  filter(gender == "Woman") %>% 
+  ggplot(aes(y=fct_reorder(industry,avg_salary), x=avg_salary))+
+  geom_bar(position="dodge", stat="identity",fill="pink")+
+  labs(
+    title="Woman",
+    x="Annual Salary $",
+    y="Industry"
+  )+
+  theme_wsj()+
+  NULL
+library(grid)
+gridExtra::grid.arrange(g_man, g_woman, nrow=1)
 ```
 
 
 
 ```{r}
-# salary gap
+# salary gap in different industries
 ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
