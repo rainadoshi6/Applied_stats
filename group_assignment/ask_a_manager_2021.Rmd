@@ -98,16 +98,28 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 
 only keep the commonly used currencies and standardize the number
 ```{r}
-av_api_key("DLTJZL3OWXJP607Q")
-tiingo_api_key('<your-api-key>')
-tq_get_options()
-tq_get("USD/EUR", get = "tiingo", from="2021-01-01", to="2021-01-15")
-#
-tq_get("USD/EUR", get = "alphavantage", av_fun = "FX_DAILY", from_symbol="EUR")
+library(quantmod)
 
-ask_a_manager_2021 %>% 
-  count(currency, sort=TRUE) %>% 
-  mutate(percent = 100* n/sum(n))
+# ask_a_manager_2021 %>%
+#   count(currency, sort=TRUE) %>% 
+#   mutate(percent = 100* n/sum(n))
+
+#We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies
+# We will convert the currencies all to USD using exchange rate data from quantmod
+# The currency rate will be taken from the last date of the survey "2021-09-14"
+
+currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
+                        from="2021-09-14", to="2021-09-14", src="oanda")
+
+# GB<- ask_a_manager_2021 %>% filter(currency=="GBP")
+# 
+# for (row in 1:length(ask_a_manager_2021$currency)) {
+#   if(curr=="GBP") {
+#     ask_a_manager_2021[row,6] <- ask_a_manager_2021[row,6]*first(GBPUSD)
+#     print("tea?")
+#   }
+# }
+
 ```
 
 ```{r}
