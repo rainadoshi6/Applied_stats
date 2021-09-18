@@ -1,0 +1,237 @@
+---
+title: "Youth Risk Behavior Surveillance"
+author: "Yuan Gao"
+date: "2021-09-13"
+output: html_document
+---
+
+# Youth Risk Behavior Surveillance
+
+Every two years, the Centers for Disease Control and Prevention conduct the [Youth Risk Behavior Surveillance System (YRBSS)](https://www.cdc.gov/healthyyouth/data/yrbs/index.htm) survey, where it takes data from high schoolers (9th through 12th grade), to analyze health patterns. We will work with a selected group of variables from a random sample of observations during one of the years the YRBSS was conducted.
+
+## Load the data
+
+This data is part of the `openintro` textbook and we can load and inspect it. There are observations on 13 different variables, some categorical and some numerical. The meaning of each variable can be found by bringing up the help file:
+
+```{r}
+?yrbss
+```
+
+```{r}
+data(yrbss)
+glimpse(yrbss)
+```
+
+Now we summarize the statistics of numerical variables, and create a very rough histogram.
+
+```{r}
+skim(yrbss)
+```
+
+## Exploratory Data Analysis
+
+We first start with analyzing the `weight` of participants in kilograms. From the histogram and summary statistics below we can see the distribution of weights is positively skewed. We can see that the distribution is right skewed and there are 1004 missing values.
+
+```{r, eda_on_weight}
+# stats
+summary(yrbss$weight)
+
+# plot histogram
+yrbss %>% 
+  filter(!is.na(weight)) %>% 
+  ggplot(aes(x=weight))+
+  geom_histogram(bins=30)+
+  NULL
+
+```
+
+
+Next, consider the possible relationship between a high schooler's weight and their physical activity. Next we plot the data to quickly visualize trends, identify strong associations, and develop research questions.
+
+We create a new variable in the dataframe `yrbss`, called `physical_3plus` , which will be `yes` if they are physically active for at least 3 days a week, and `no` otherwise.
+
+```{r, mutate_and_count}
+
+yrbss <- yrbss %>% 
+  mutate(physical_3plus = case_when(
+    physically_active_7d >= 3 ~ "yes",
+    physically_active_7d < 3 ~ "no",
+    T ~ "NA"
+  )) %>% 
+  filter(physical_3plus!="NA") # remove null values
+
+
+
+# group by and summarise
+yrbss_prop <- yrbss %>% 
+  group_by(physical_3plus) %>% 
+  summarise(n = n()) %>% 
+  mutate(prop= n/sum(n))
+  
+# another way: count
+# yrbss_prop <- yrbss %>%
+#  count(physical_3plus, sort=TRUE) %>%
+#  mutate(prop= n/sum(n))
+yrbss_prop
+
+```
+
+### Calculating confidence interval
+
+```{r, confidence interval}
+
+# notes: here std_error is the standard deviation of the sample mean
+
+not_prop <- yrbss_prop %>% 
+  filter(physical_3plus=="no") %>%
+  pull("prop")
+
+not_n <- yrbss_prop %>% 
+  filter(physical_3plus=="no") %>%
+  pull("n")
+
+# estimation of sd
+std_error <- sqrt(not_prop * (1-not_prop) / (sum(yrbss_prop$n) ))
+
+# with unknown population sd, use t distribution 1.960503
+t_critical <- qt(0.975, not_n - 1)
+
+margin_of_error <- t_critical * std_error
+
+# ci
+phy_3plus_low <- not_prop - margin_of_error
+phy_3plus_high <- not_prop + margin_of_error
+
+print(sprintf("95%% confidence interval is [%f,%f]",phy_3plus_low,phy_3plus_high))
+  
+```
+
+- 95% confidence interval for the population proportion of high schools that are *NOT* active 3 or more days per week is [0.322883,0.338875]
+
+
+### Boxplot
+
+Next we make a boxplot of `physical_3plus` vs. `weight` to check the relationship between these two variables.
+
+```{r, boxplot, warning=FALSE}
+
+yrbss %>%
+  filter(physical_3plus!="NA") %>% 
+  ggplot(aes(x = physical_3plus , y = weight)) +
+  geom_boxplot()+
+  labs(title = "Boxplot of Active for at least 3 days vs Weight",
+       x = "Active at least 3 days",
+       y = "Weight")+
+  NULL
+
+```
+
+Conclusion:
+
+- No significant relationship can be identified. We expected the more students exercise the lighter weight they have.
+
+- But we can see that the median weight of the sample who are physically active for at least three days is greater than the median of the sample who are active for lesser than three days. This may be because of higher weight of muscle or bone due to working out/exercising.
+
+## Confidence Interval (Difference of means)
+
+Boxplots show how the medians of the two distributions compare, but we can also compare the means of the distributions using either a confidence interval or a hypothesis test. 
+
+```{r, ci_using_formulas}
+
+yrbss_stats <- favstats(weight~physical_3plus, data=yrbss,na.rm = T)
+
+# use formulas
+yrbss_stats_alt <- yrbss %>% 
+  group_by(physical_3plus) %>% 
+  summarise(avg_weight = mean(weight,na.rm=T),
+            sd_weight_mean = sd(weight,na.rm=T),
+            n=n())
+
+#approximate by 1.96
+t_critical <- 1.96 # qt(0.975, ) # calculate df with Welch-Satterhwaite formula
+
+no_ci_lower <- 66.674 - t_critical*17.638/sqrt(sum(yrbss_stats_alt$n))
+no_ci_higher <- 66.674 + t_critical*17.638/sqrt(sum(yrbss_stats_alt$n))
+print(sprintf("weights of 'no': 95%% confidence interval is [%f,%f]",no_ci_lower,no_ci_higher))
+
+yes_ci_lower <- 68.448 - t_critical*16.478/sqrt(sum(yrbss_stats_alt$n))
+yes_ci_higher <- 68.448 + t_critical*16.478/sqrt(sum(yrbss_stats_alt$n))
+print(sprintf("weights of 'yes': 95%% confidence interval is [%f,%f]",yes_ci_lower,yes_ci_higher))
+
+
+```
+
+- There is an observed difference of about 1.77kg (68.44 - 66.67), and we notice that the two confidence intervals do not overlap. It seems that the difference is at least 95% statistically significant. Let us also conduct a hypothesis test.
+
+## Hypothesis test with formula (Difference of means)
+
+Null hypothesis $H_0:\bar{weight}_{>=3h}-\bar{weight}_{<3h}=0$
+
+Alternative hypothesis $H_1:\bar{weight}_{>=3h}-\bar{weight}_{<3h}\neq0$
+
+```{r, t_test_using_R}
+t.test(weight ~ physical_3plus, data = yrbss) # assume different variance
+```
+
+## Hypothesis test with `infer`
+
+Next, we use `hypothesize` for conducting hypothesis tests.
+
+First, we need to initialize the test, which we will save as `obs_diff`.
+
+```{r, calc_obs_difference, warnings=FALSE}
+obs_diff <- yrbss %>%
+  specify(weight ~ physical_3plus) %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+
+obs_diff
+
+```
+
+The statistic we are searching for is the difference in means, with the order being yes - no != 0.
+
+After initializing the test, we will simulate the test on the null distribution, which we will save as null.
+
+
+```{r, hypothesis_testing_using_infer_package}
+
+null_dist <- yrbss %>%
+  # specify variables
+  specify(weight ~ physical_3plus) %>%
+  
+  # assume independence, i.e, there is no difference
+  hypothesize(null = "independence") %>%
+  
+  # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
+  calculate(stat = "diff in means", order = c("yes", "no"))
+
+```
+
+We can visualize this null distribution with the following code:
+
+```{r}
+ggplot(data = null_dist, aes(x = stat)) +
+  geom_histogram()+
+  NULL
+```
+
+Now that the test is initialized and the null distribution formed, we will visualise to see how many of these null permutations have a difference of at least `obs_stat` of `r obs_diff %>% pull() %>% round(2)`. We will also calculate the p-value for the hypothesis test using the function `infer::get_p_value()`.
+
+```{r}
+
+null_dist %>% visualize() +
+  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
+
+null_dist %>%
+  get_p_value(obs_stat = obs_diff, direction = "two_sided")
+
+
+```
+
+- In 1000 permutations, there is no point has a difference of at least `obs_stat` of `r obs_diff %>% pull() %>% round(2)`. The p-value here is given by 0, but this result is an approximation based on the number of `reps` chosen in the `generate()` step.
+
+- Since the p_value is close to 0, we will reject the null hypothesis.
+

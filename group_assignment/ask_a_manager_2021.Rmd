@@ -35,10 +35,29 @@ remove missing values.
 ```{r remove-na}
 # remove the NA values
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  filter(!gender %in% c("NA","Other or prefer not to answer","Prefer not to answer") &
+  filter(!gender %in% c("NA","Other or prefer not to answer","Prefer not to answer", "Non-binary", NA) &
            race!="NA" &
            highest_level_of_education_completed!="NA")
 ```
+
+remove outliers
+
+```{r remove-outliers-z-score}
+# using z-score. remove data out of 3 sigma
+ask_a_manager_2021 <- ask_a_manager_2021[-which(abs(scale(ask_a_manager_2021$annual_salary))>3),]
+
+```
+
+```{r}
+# using quantile. remove data larger than 75%+1.5*IQR or smaller than 25%-1.5*IQR
+Q <- quantile(ask_a_manager_2021$annual_salary, probs=c(.25, .75))
+iqr <- IQR(ask_a_manager_2021$annual_salary)
+up <-  Q[2]+1.5*iqr # Upper Range  
+ask_a_manager_2021 <- ask_a_manager_2021 %>% 
+  filter(annual_salary>=low & annual_salary<=up)
+```
+
+
 
 transform into ordered `factor` datatype
 
@@ -55,18 +74,20 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
   janitor::clean_names() # clean columns names
 ```
 
-only keep top 25 industries.
+only keep the names of top 25 industries.
 
 ```{r}
 # Industry is messy... it has > 1000 different industries.
-# we only take top 25 industries into our analytics. (24597(92%) out of 26765 entries)
+# we only keep the names of top 25 industries. (24597(92%) out of 26765 entries)
 industry_list <- ask_a_manager_2021 %>% 
   count(industry, sort=TRUE) %>% 
   mutate(percent = 100* n/sum(n)) %>% 
   slice_max(order_by = n, n = 25) %>% 
   select(industry)
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  filter(industry %in% industry_list$industry)
+  mutate(industry = ifelse(industry %in% industry_list$industry,
+                           industry,
+                           "Others"))
 
 ```
 
@@ -87,13 +108,6 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 # todo
 
 ```
-
-```{r}
-colnames(ask_a_manager_2021)
-```
-
-
-
 
 # Exploratory Data Analysis
 
@@ -153,30 +167,75 @@ How is salary distributed?
 
 ```{r}
 
-# How is salary distributed?
 favstats(ask_a_manager_2021$annual_salary) # find a really rich guy here
 
-ask_a_manager_2021 %>% 
-  slice_min(order_by = annual_salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
-  ggplot(aes(x=annual_salary))+
-  geom_boxplot()
 
-ask_a_manager_2021 %>% 
+# density
+g1<-ggplot(ask_a_manager_2021, aes(x=annual_salary))+
+  geom_density()+
+  NULL
+#cdf
+g2<-ask_a_manager_2021 %>% 
   slice_min(order_by = annual_salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
   ggplot(aes(x=annual_salary))+
-  stat_ecdf()
+  stat_ecdf()+
+  NULL
 
 # taking log is better
-ggplot(ask_a_manager_2021, aes(x=log(annual_salary)))+
-  geom_density()
+g3<-ggplot(ask_a_manager_2021, aes(x=log(annual_salary)))+
+  geom_density()+
+  NULL
 
+g4<-ask_a_manager_2021 %>% 
+  slice_min(order_by = annual_salary,n =nrow(ask_a_manager_2021)-5) %>% # choose a number
+  ggplot(aes(x=log(annual_salary)))+
+  stat_ecdf()+
+  NULL
+
+gridExtra::grid.arrange(g1,g2,g3,g4)
 ```
 
 right skewed distribution. 
 
 ## Industry (Yuan)
 
+```{r}
+ask_a_manager_2021 %>% 
+  count(industry, sort=TRUE) %>% 
+  ggplot(aes(y=fct_reorder(industry,n), x=n))+
+  geom_col()
+```
+
 ## Gender vs Industry (Yuan)
+
+```{r}
+ask_a_manager_2021 %>% 
+  group_by(industry, gender) %>% 
+  summarise(count = n(),
+            avg_salary = mean(annual_salary)) %>% 
+  pivot_wider(id_cols = 1:4,
+              names_from = gender,
+              values_from = count:avg_salary) %>% 
+  mutate(size = count_Man+count_Woman,
+         male_prop = count_Man/(count_Man+count_Woman),
+         salary_gap = avg_salary_Man - avg_salary_Woman) %>% 
+  ggplot(aes(y=fct_reorder(industry,salary_gap), x=salary_gap,fill=male_prop))+
+  geom_col()+
+  geom_point(aes(y=fct_reorder(industry,size),x=size*10))+
+  scale_x_continuous(
+    # Features of the first axis
+    name = "Annual Salary",
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(trans = ~., name="Sample size")
+  ) +
+  scale_fill_gradient(low="pink", high="sky blue")+
+  labs(
+    title="",
+    x="",
+    y=""
+  )+
+  NULL
+```
 
 ## Education (Jean)
 
@@ -328,4 +387,26 @@ colnames(ask_a_manager_2021)
 
 
 # Regression Analysis (Yuan)
+
+```{r}
+
+m1 <- lm(annual_salary ~ highest_level_of_education_completed, data=ask_a_manager_2021)
+m2 <- lm(annual_salary ~ highest_level_of_education_completed+how_old_are_you, data=ask_a_manager_2021)
+m3 <- lm(annual_salary ~ highest_level_of_education_completed+gender, data=ask_a_manager_2021)
+m4 <- lm(annual_salary ~ highest_level_of_education_completed+gender+, data=ask_a_manager_2021)
+
+
+huxreg(m1, m2, m3, m4,
+       leave_politics, leave_everything,final_model,
+       statistics = c('#observations' = 'nobs', 
+                      'R squared' = 'r.squared', 
+                      'Adj. R Squared' = 'adj.r.squared', 
+                      'Residual SE' = 'sigma'), 
+       bold_signif = 0.05, 
+       stars = NULL
+) %>% 
+  set_caption('Comparison of models')
+
+```
+
 
