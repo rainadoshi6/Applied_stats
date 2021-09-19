@@ -435,10 +435,59 @@ ask_a_manager_2021 %>%
   ggplot(aes(y=fct_reorder(industry,count),x=count))+
   geom_col()
 
-# null hypothesis: no difference between
 ```
 
 ## Age (Raina)
+
+```{r}
+
+ask_a_manager_2021 %>% 
+  group_by(age_group, gender) %>% 
+  summarise(count=n()) 
+  #ggplot(aes(y=fct_reorder(how_old_are_you,count),x=count))+
+  #geom_col()
+
+
+```
+
+
+
+```{r}
+# Count by Age Group
+
+ask_a_manager_2021 %>% 
+  group_by(age_group) %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(y=fct_reorder(age_group,count),x=count))+
+  geom_col()
+
+
+# Sorting out the people who are 18+ 
+ask_a_manager_age <- ask_a_manager_2021 %>%  
+                    mutate(factor(age_group,levels=c("18-24","25-34","35-44","45-54","55-64","65 or over")))
+     
+```
+```{r}
+
+#need to change colors for male and female ?!
+
+#there are only 6 women in under 18 category so excluding them for the graph
+# since there is no male data in that category to compare
+
+ask_a_manager_age %>% 
+  filter(age_group %in% c("18-24", "25-34" , "35-44" , "45-54" , "55-64"  )) %>% 
+  group_by(age_group, gender) %>% 
+  summarise (median_salary_by_age = median (salary),
+             mean_salary_by_age = mean(salary)) %>% 
+  ggplot () +
+  geom_col(aes (age_group, median_salary_by_age, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
+  geom_point(aes(x = age_group, y=mean_salary_by_age, color = gender))+
+  theme_bw()+
+  #formatC(x, format = "d")+
+  labs(  title =  "Median Salary by Age Group" , y="Salary" ,x = "Age Group") +
+  NULL
+
+```
 
 
 ## Experience (Raghav)
@@ -520,6 +569,21 @@ From the result of two proportion tests, we can see that even though the proport
 
 >>>>>>> 9b486f73de9457cda169d9442050a5ecf68ae637
 ## Race vs Salary (Raina)
+
+Here we want to see if race is affecting the salary.
+
+```{r t_test_for_race_education}
+
+ask_a_manager_salary <- ask_a_manager_2021 %>% 
+  mutate(if_white = if_else(race == "White", "Yes", "No")) %>% 
+  select(if_white,salary)
+
+ask_a_manager_salary
+
+prop.test(~if_white, data = ask_a_manager_salary, success = "Yes")
+
+
+```
 
 > wisely choose the race. like white vs. not white
 
