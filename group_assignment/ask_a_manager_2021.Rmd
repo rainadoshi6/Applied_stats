@@ -333,7 +333,7 @@ ask_a_manager_2021 %>%
   ggplot () +
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
   geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
-  theme_bw()+
+  theme_wsj()+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   NULL
 
@@ -350,36 +350,57 @@ ask_a_manager_2021 %>%
   summarise(count=n()) %>% 
   ggplot(aes(y=count, x=race, fill=race))+
   geom_col() +
+  theme_wsj()+
   theme(legend.position = "none") +
   labs(x="Race", y="Count", title="Count by Race", subtitle = "Races with > 500 Respondents")+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 ```
-<<<<<<< HEAD
-### Mean Salary
 
-
-=======
 
 ### Race and Mean Salary 
 
->>>>>>> ad384794db78346e06f0ec0b05171260ea3d105b
 ```{r}
 ask_a_manager_2021 %>% 
+  filter(industry %in% industry_list$industry) %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
   summarise (median_salary_by_race = median (annual_salary),
              mean_salary_by_race = mean(annual_salary)) %>% 
   ggplot(aes(y=median_salary_by_race, x=race, color=race))+
   geom_point() +
+  geom_line() +
   theme(legend.position = "none") +
+  theme_wsj()+
   labs(x="Race", y="Medium Salary", title="Salary by Race", subtitle = "Races with > 500 Respondents")+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 
+ask_a_manager_2021 %>% 
+  filter(industry %in% industry_list$industry) %>% 
+  group_by(race) %>% 
+  filter(n() > 500) %>% 
+ ggplot( aes(x=race, y=salary, color=race)) +
+    geom_jitter(color="black", size=0.01, alpha=0.9) +
+   geom_boxplot(alpha=0.4) +
+   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+    geom_hline(yintercept=144988, color="red") +
+    theme_wsj() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    theme(axis.title=element_text(size=12))+
+    ggtitle("Salary Vs. Race Boxplot with Jitter") +
+    ylab("Salary") + xlab ("Race") + 
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+    scale_y_continuous(labels = scales::comma) +
+    NULL
+  
 ```
 ### Race and Mean Salary 
 ```{r}
+# Remove from presentation
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
@@ -388,7 +409,7 @@ ask_a_manager_2021 %>%
   theme_bw()+
   theme(legend.position = "none")+
   labs(title = "Distribution of Annual Salaries by Racial Group",
-       x = "Film Rating",
+       x = "Race",
        y = " ")+
   NULL
 ```
@@ -416,9 +437,9 @@ states <- ask_a_manager_2021 %>%
 states$fips <- fips(states$state)
 statesalarymap <- states %>% select(state,mean_salary)
 
-plot_usmap(data=statesalarymap, values="mean_salary", color="red") + scale_fill_continuous(
+plot_usmap(data=statesalarymap, values="mean_salary", color="black") + scale_fill_continuous(
     low = "white",
-    high = "red",
+    high = "light green",
     name = "Mean Salary") +
   theme(legend.position = "right") +
   labs(title="Map of US States based on Average Salary")
@@ -458,11 +479,25 @@ mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
 ```
 
 ```{r}
-ask_a_manager_2021 %>% 
-  ggplot(aes(x=gender,y=log_salary))+
-  geom_boxplot()
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
 
-ask_a_manager_2021
+ask_a_manager_2021 %>% 
+  ggplot( aes(x=gender, y=log(salary), color=gender)) +
+    geom_boxplot() +
+    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+    geom_jitter(color="black", size=0.4, alpha=0.9) +
+    theme_wsj() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    ggtitle("Salary Vs. Gender Boxplot with Jitter") +
+    xlab("") + 
+    ylab("Log of Salary")
+  
+ 
 
 ```
 ***For our following analysis, we will be comparing data from the male gender "Man" with data from the female gender "Woman." We will filter out the data on those that are non binary.***
@@ -495,7 +530,7 @@ mutate(t_critical = qt(0.975,n-1),
          margin_of_error = t_critical*sd_mean,
          ci_lower = mean-margin_of_error,
          ci_higher = mean+margin_of_error)
-
+# Add graph of two distributions and confidence intervals 
 ```
 Observation: Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have higher salary than the female on average.
 
