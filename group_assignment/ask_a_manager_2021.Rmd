@@ -445,6 +445,13 @@ ask_a_manager_2021 %>%
 
 ## Experience (Raghav)
 
+```{r}
+ask_a_manager_2021 %>% 
+  group_by() %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(y=fct_reorder(industry,count),x=count))+
+  geom_col()
+```
 
 # Statistical Tests
 
@@ -573,6 +580,30 @@ prop.test(~if_white, data = ask_a_manager_2021, success = "Yes")
 
 
 ## Changed Industry? vs salary (Raghav)
+```{r}
+ask_a_manager_2021_changed <- ask_a_manager_2021  %>%
+mutate(if_changed= if_else(overall_years_of_professional_experience == years_of_experience_in_field, "No", "Yes"))
+```
+
+
+```{r}
+ask_a_manager_2021_changed %>% 
+ggplot(aes(x=overall_years_of_professional_experience, y=annual_salary, color=if_changed))+
+  # scatter plot
+  geom_point(alpha = 0.5)+
+  # linear smooth line
+  geom_smooth(method = "lm")+
+  # legend settings
+  theme(legend.position = "bottom",
+        legend.title = element_blank())+
+  labs(title="Whether changing job affects your salary",
+       x="Total Years Spent Working",
+       y="Salary")+
+  theme_bw()+
+  NULL
+prop.test(~if_changed, data = ask_a_manager_2021, success = "Yes")
+```
+```
 
 
 
