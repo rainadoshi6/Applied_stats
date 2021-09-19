@@ -97,12 +97,17 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 ```
 
 only keep the commonly used currencies and standardize the number
+
+```{r}
+ask_a_manager_2021 %>%
+  count(currency, sort=TRUE) %>%
+  mutate(percent = 100* n/sum(n))
+
+```
+
 ```{r}
 library(quantmod)
-
-# ask_a_manager_2021 %>%
-#   count(currency, sort=TRUE) %>% 
-#   mutate(percent = 100* n/sum(n))
+#library to get currency data (and other financial data)
 
 #We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies
 # We will convert the currencies all to USD using exchange rate data from quantmod
@@ -111,15 +116,25 @@ library(quantmod)
 currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
 
-# GB<- ask_a_manager_2021 %>% filter(currency=="GBP")
-# 
-# for (row in 1:length(ask_a_manager_2021$currency)) {
-#   if(curr=="GBP") {
-#     ask_a_manager_2021[row,6] <- ask_a_manager_2021[row,6]*first(GBPUSD)
-#     print("tea?")
-#   }
-# }
+```
 
+
+```{r}
+ask_a_manager_2021 %>% filter(currency=="AUD/NZD") 
+```
+
+
+```{r}
+#creating a tibble witht the currency values taken from Oanda.
+currency_df <- tibble(
+  value = c(first(GBPUSD),first(AUDUSD),first(CADUSD),first(EURUSD),first(NZDUSD)),
+  name = c("GBP", "AUD","CAD","EUR","NZD")
+)
+
+```
+```{r}
+# Can see that the conversion works as wanted.
+ask_a_manager_2021 %>% filter(currency=="AUD/NZD") %>% select(country, annual_salary, converted_salary_usd)
 ```
 
 ```{r}
@@ -128,7 +143,7 @@ currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
 
 
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  filter(currency=="USD" &
+  filter(currency %in% c("USD","GBP","AUD/NZD","EUR","CAD") &
            !is.na(country))
 
 # filter out outliers of annual salary
@@ -136,7 +151,9 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 # ask_a_manager_2021 <- ask_a_manager_2021 %>% 
 #   filter(salary>1000 & salary<1000000)
 # todo
-
+ask_a_manager_2021 %>%
+  count(currency, sort=TRUE) %>%
+  mutate(percent = 100* n/sum(n))
 ```
 
 # Exploratory Data Analysis
@@ -148,11 +165,11 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 ask_a_manager_2021 %>% 
   count(age_group, sort=TRUE) %>% 
   mutate(percent = 100* n/sum(n)) %>% 
-  ggplot(aes(x=fct_reorder(age_group,-n), y=n)) +
+  ggplot(aes(x=fct_relevel(age_group,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")), y=n)) +
   geom_bar(stat="identity") + labs(title = "Age distribution of Ask a Manager survey respondents",                                                 x="Age group",
                   y="Frequency",                                                  caption = "Source:Askamanager.com")
 
-
+?fct_relevel
 
 # 'country' 
 ask_a_manager_2021 %>%
@@ -239,6 +256,7 @@ ask_a_manager_2021 %>%
   count(industry, sort=TRUE) %>% 
   ggplot(aes(y=fct_reorder(industry,n), x=n))+
   geom_col()
+
 ```
 
 ## Salary ,Gender and Industry (Yuan)
@@ -355,15 +373,12 @@ ask_a_manager_2021 %>%
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 ```
-<<<<<<< HEAD
+
 ### Mean Salary
 
 
-=======
-
 ### Race and Mean Salary 
 
->>>>>>> ad384794db78346e06f0ec0b05171260ea3d105b
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
@@ -378,7 +393,9 @@ ask_a_manager_2021 %>%
   NULL
 
 ```
+
 ### Race and Mean Salary 
+
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
@@ -398,7 +415,8 @@ ask_a_manager_2021 %>%
 ```
 
 ## Location (Alex)
-```{r, }
+
+```{r}
 #This package is useful for creating a map of the USA
 library(usmap)
 library(ggrepel)
@@ -454,6 +472,7 @@ ask_a_manager_2021 %>%
 ## Gender vs Salary (Clara)
 
 ### General Statistics & Boxplot
+
 ```{r}
 mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
 
@@ -467,6 +486,7 @@ ask_a_manager_2021 %>%
 ask_a_manager_2021
 
 ```
+
 ***For our following analysis, we will be comparing data from the male gender "Man" with data from the female gender "Woman." We will filter out the data on those that are non binary.***
 
 ### T-Test
@@ -479,6 +499,7 @@ t.test(salary ~ gender, data = ask_a_manager_2021)
 ```
 
 ### Confidence Intervals 
+
 ```{r, gender vs. salary confidence intervals}
  
 #mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
@@ -499,9 +520,11 @@ mutate(t_critical = qt(0.975,n-1),
          ci_higher = mean+margin_of_error)
 
 ```
+
 Observation: Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have higher salary than the female on average.
 
 ### Bootstrap Test 
+
 ```{r}
 # hypothesis testing using infer package
 diff <- ask_a_manager_2021_gender %>%
