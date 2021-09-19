@@ -511,6 +511,21 @@ prop.test(~gender , data = ask_a_manager_2021, success = "Yes")
 
 ## Race vs Salary (Raina)
 
+Here we want to see if race is affecting the salary.
+
+```{r t_test_for_race_education}
+
+ask_a_manager_salary <- ask_a_manager_2021 %>% 
+  mutate(if_white = if_else(race == "White", "Yes", "No")) %>% 
+  select(if_white,salary)
+
+ask_a_manager_salary
+
+prop.test(~if_white, data = ask_a_manager_salary, success = "Yes")
+
+
+```
+
 > wisely choose the race. like white vs. not white
 
 ## Race vs Education (Jean)
