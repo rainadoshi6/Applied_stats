@@ -11,6 +11,10 @@ library(here)
 # https://www.askamanager.org/
 ask_a_manager_2021 <- read_csv(here("data","ask_a_manager.csv"))
 
+# if googlesheets is now working, read local copy
+ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))
+  
+
 skimr::skim(ask_a_manager_2021)
 
 
