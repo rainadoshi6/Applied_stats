@@ -356,15 +356,13 @@ ask_a_manager_2021 %>%
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 ```
-<<<<<<< HEAD
+
 ### Mean Salary
 
 
-=======
 
 ### Race and Mean Salary 
 
->>>>>>> ad384794db78346e06f0ec0b05171260ea3d105b
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
@@ -379,7 +377,9 @@ ask_a_manager_2021 %>%
   NULL
 
 ```
+
 ### Race and Mean Salary 
+
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
@@ -454,6 +454,7 @@ ask_a_manager_2021 %>%
 ## Gender vs Salary (Clara)
 
 ### General Statistics & Boxplot
+
 ```{r}
 mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
 
@@ -467,6 +468,7 @@ ask_a_manager_2021 %>%
 ask_a_manager_2021
 
 ```
+
 ***For our following analysis, we will be comparing data from the male gender "Man" with data from the female gender "Woman." We will filter out the data on those that are non binary.***
 
 ### T-Test
@@ -479,6 +481,7 @@ t.test(salary ~ gender, data = ask_a_manager_2021)
 ```
 
 ### Confidence Intervals 
+
 ```{r, gender vs. salary confidence intervals}
  
 #mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
@@ -499,9 +502,11 @@ mutate(t_critical = qt(0.975,n-1),
          ci_higher = mean+margin_of_error)
 
 ```
+
 Observation: Since two 95% confidence intervals do not overlap, we are at least 95% confident that the male have higher salary than the female on average.
 
 ### Bootstrap Test 
+
 ```{r}
 # hypothesis testing using infer package
 diff <- ask_a_manager_2021_gender %>%
