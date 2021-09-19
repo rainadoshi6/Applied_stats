@@ -134,16 +134,17 @@ currency_df <- tibble(
 ```
 ```{r}
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  mutate(converted_salary_usd = case_when(
+  mutate(salary_converted = case_when(
     currency == "GBP" ~ annual_salary*currency_df$value[currency_df$name=="GBP"],
     currency == "AUD/NZD" & country == "Australia" ~ annual_salary*currency_df$value[currency_df$name=="AUD"],
     currency == "AUD/NZD" & country == "New Zealand" ~ annual_salary*currency_df$value[currency_df$name=="NZD"],
     currency == "CAD" ~ annual_salary*currency_df$value[currency_df$name=="CAD"],
     currency == "EUR" ~ annual_salary*currency_df$value[currency_df$name=="EUR"],
+    T ~ annual_salary
   ))
 
 # Can see that the conversion works as wanted.
-ask_a_manager_2021 %>% filter(currency=="AUD/NZD") %>% select(country, annual_salary, converted_salary_usd)
+ask_a_manager_2021 %>%  select(country, annual_salary, salary_converted)
 ```
 
 ```{r}
