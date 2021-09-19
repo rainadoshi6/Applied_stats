@@ -530,7 +530,6 @@ null_dist <- omega %>%
   
   # generate 1000 reps, of type "permute"
   generate(reps = 1000, type = "permute") %>%
-  
   # calculate statistic of difference, namely "diff in means"
   calculate(stat = "diff in means", order = c("female", "male"))
 
