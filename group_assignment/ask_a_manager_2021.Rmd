@@ -148,11 +148,11 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 ask_a_manager_2021 %>% 
   count(age_group, sort=TRUE) %>% 
   mutate(percent = 100* n/sum(n)) %>% 
-  ggplot(aes(x=fct_reorder(age_group,-n), y=n)) +
+  ggplot(aes(x=fct_relevel(age_group,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")), y=n)) +
   geom_bar(stat="identity") + labs(title = "Age distribution of Ask a Manager survey respondents",                                                 x="Age group",
                   y="Frequency",                                                  caption = "Source:Askamanager.com")
 
-
+?fct_relevel
 
 # 'country' 
 ask_a_manager_2021 %>%
@@ -239,6 +239,7 @@ ask_a_manager_2021 %>%
   count(industry, sort=TRUE) %>% 
   ggplot(aes(y=fct_reorder(industry,n), x=n))+
   geom_col()
+
 ```
 
 ## Salary ,Gender and Industry (Yuan)
@@ -398,7 +399,8 @@ ask_a_manager_2021 %>%
 ```
 
 ## Location (Alex)
-```{r, }
+
+```{r}
 #This package is useful for creating a map of the USA
 library(usmap)
 library(ggrepel)
