@@ -113,7 +113,7 @@ library(quantmod)
 # We will convert the currencies all to USD using exchange rate data from quantmod
 # The currency rate will be taken from the last date of the survey "2021-09-14"
 
-currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
+currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD" , "NZD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
 
 ```
@@ -654,7 +654,7 @@ ask_a_manager_salary <- ask_a_manager_2021 %>%
   mutate(if_white = if_else(race == "White", "Yes", "No")) %>% 
   select(if_white,salary)
 ask_a_manager_salary
-prop.test(~if_white, data = ask_a_manager_salary, success = "Yes")
+t.test(salary~if_white, data = ask_a_manager_salary, success = "Yes")
 ```
 
 > wisely choose the race. like white vs. not white
