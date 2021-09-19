@@ -1,0 +1,233 @@
+---
+title: "Climate Change Analysis"
+author: "Clara Moreno Sanchez"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: zenburn
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+---
+
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, include=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(lubridate)
+library(here)
+library(skimr)
+library(janitor)
+library(httr)
+library(readxl)
+library(vroom)
+library(infer)
+```
+
+
+
+# Analyzing Climate Change through Temperature Anomalies 
+
+By using R Studio and ggplot to analyze temperature variances between 1951-1980, the effects of climate change are illustrated. 
+
+I will use date from *Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies* in the Northern Hemisphere at [NASA's Goddard Institute for Space Studies](https://data.giss.nasa.gov/gistemp). The [tabular data of temperature anomalies can be found here](https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.txt)
+
+
+```{r weather_data, cache=TRUE}
+
+weather <- 
+  read_csv("https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.csv", #retrieving data 
+           skip = 1, #skipping first line 
+           na = "***") 
+
+```
+I have modified the data by adding `skip` and `na`, and we select the year and the twelve month variables from the dataset while deleting the rest as they are non-relevant. 
+
+## Data Frame 
+```{r tidyweather,}
+tidyweather <- weather %>%  select(1:13) %>% pivot_longer(cols=2:13, names_to = "Month", values_to="delta")
+
+tidyweather
+
+```
+
+
+## Plot of Date and Delta Values 
+
+To illustrate the trend of temperature anomalies, I will plot the data using a time-series scatter plot, and have add a trendline. 
+
+
+
+```{r scatter_plot,warning=FALSE}
+# convert the date time datatype to plot chronologically
+tidyweather <- tidyweather %>%
+  mutate(date = ymd(paste(as.character(Year), Month, "1")), 
+         month = month(date, label=TRUE),
+         year = year(date))
+
+# plotting the scatter plot of the data
+ggplot(tidyweather, aes(x=date, y = delta))+
+  geom_point()+
+  geom_smooth(color="red") +
+  theme_bw() +
+  labs (
+    title = "Weather Anomalies",
+    x = "Date",
+    y = "Temperature deviation"
+  )+
+  NULL
+
+```
+As evidenced in the plot, the change in temperature from out base year were negative before the 1970s and then temperatures started to increase steeply afterwards. 
+
+
+Visualizing the data on a per-month basis will help see if the effect of increasing temperature is more pronounced in some months than others.  
+
+```{r facet_wrap, warning=FALSE}
+#plotting the by-month scatter plot of data
+ggplot(tidyweather, aes(x=date, y = delta))+
+  geom_point()+
+  geom_smooth(color="red") +
+  geom_hline(yintercept = 0, color="orange")+
+  theme_bw() +
+  labs (
+    title = "Weather Anomalies",
+    x = "Date",
+    y = "Temperature deviation"
+  )+
+  facet_wrap(~month)+       #Faceting on a per month basis 
+  NULL
+
+```
+From the above chart one can see the temperature deviation is smaller from May to August compared to September to December. This means that the Spring and Summer seasons have been more prone to greater temperature anomalies than the Fall and Winter seasons. 
+ 
+To study the historical data, I will group data into different time periods.
+
+```{r intervals}
+
+comparison <- tidyweather %>% 
+  filter(Year>= 1881) %>%     #remove years prior to 1881
+  #create new variable 'interval', and assign values based on criteria below:
+  mutate(interval = case_when(           #assigning difference periods 
+    Year %in% c(1881:1920) ~ "1881-1920",
+    Year %in% c(1921:1950) ~ "1921-1950",
+    Year %in% c(1951:1980) ~ "1951-1980",
+    Year %in% c(1981:2010) ~ "1981-2010",
+    TRUE ~ "2011-present"
+  ))
+
+```
+
+
+```{r density_plot}
+# Set `fill` to `interval` to group and colour the data by different time periods.
+ggplot(comparison, aes(x=delta, fill=interval))+
+  geom_density(alpha=0.2) +   #density plot with tranparency set to 20%
+  theme_bw() +                #theme
+  labs (
+    title = "Density Plot for Monthly Temperature Anomalies",
+    y     = "Density"         #changing y-axis label to sentence case
+  )
+
+```
+- From this we can see that as time goes by, the average delta of climate change increases from negative to positive, indicating the temperature is increasing. We can also see the temperature is increasing at a larger rate since 1951.
+
+
+If one is also interested in average annual anomalies, we can further modified the data to produce a scatter plot as below:
+
+```{r averaging}
+
+#creating yearly averages
+average_annual_anomaly <- tidyweather %>% 
+  group_by(Year) %>%   #grouping data by Year
+  
+  # creating summaries for mean delta 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(annual_average_delta = mean(delta, na.rm=TRUE)) 
+
+#plotting the data:
+ggplot(average_annual_anomaly, aes(x=Year, y= annual_average_delta))+
+  geom_point()+
+  
+  #Fit the best fit line, using LOESS method
+  geom_smooth() +
+  
+  #change to theme_bw() to have white background + black frame around plot
+  theme_bw() +
+  labs (
+    title = "Average Yearly Anomaly",
+    y     = "Average Annual Delta"
+  )                         
+
+
+```
+
+- As we can see from the plot, it corresponded to our earlier conclusion that the temperature is increasing at a larger rate starting significantly since 1960s.
+
+## Confidence Interval for `delta`
+
+[NASA points out on their website](https://earthobservatory.nasa.gov/world-of-change/decadaltemp.php) that 
+
+> A one-degree global change is significant because it takes a vast amount of heat to warm all the oceans, atmosphere, and land by that much. In the past, a one- to two-degree drop was all it took to plunge the Earth into the Little Ice Age.
+
+I will construct confidence interval for the average annual delta since 2011, both using a formula and using a bootstrap simulation with the `infer` package. Recall that the dataframe `comparison` has already grouped temperature anomalies according to time intervals; we are only interested in what is happening  between 2011-present.
+
+```{r, calculate_CI_using_formula, }
+
+formula_ci <- comparison %>% filter(interval =="2011-present") %>% 
+  summarise(annual_average_delta = mean(delta, na.rm=TRUE),
+            sd_delta = sd(delta, na.rm=TRUE),
+            count = n(),
+            se_delta = sd_delta/sqrt(count),
+            t_critical = qt(0.975, count-1),
+            margin_of_error = t_critical * se_delta,
+            delta_low = annual_average_delta - margin_of_error,
+            delta_high = annual_average_delta + margin_of_error)
+
+formula_ci
+```
+
+
+```{r, calculate_CI_using_bootstrap}
+
+# use the infer package to construct a 95% CI for delta
+set.seed(1234)
+
+boot_delta<- comparison %>%
+  filter(interval =="2011-present") %>%
+  specify(response = delta) %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "mean") %>% 
+  get_confidence_interval(level = 0.95, type = "percentile")
+  
+boot_delta
+
+```
+
+
+
+- Using both the bootstrap method and the formula method we got a 95% confidence interval for delta as (1.01,1.11). 
+- This means that we are 95% confident that the true mean for 2011-present for delta lies within the range of (1.01,1.11). We can confirm that there is a net increase in temperature since the base year.
+
+## Key Takeaway:
+Tempeatures have been steadily and significantly increasing since 2011, and the data makes this clear. 
