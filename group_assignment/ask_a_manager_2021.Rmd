@@ -140,6 +140,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
     currency == "AUD/NZD" & country == "New Zealand" ~ annual_salary*currency_df$value[currency_df$name=="NZD"],
     currency == "CAD" ~ annual_salary*currency_df$value[currency_df$name=="CAD"],
     currency == "EUR" ~ annual_salary*currency_df$value[currency_df$name=="EUR"],
+    T ~ annual_salary
   ))
 
 # Can see that the conversion works as wanted.
