@@ -100,9 +100,9 @@ only keep the commonly used currencies and standardize the number
 ```{r}
 library(quantmod)
 
-# ask_a_manager_2021 %>%
-#   count(currency, sort=TRUE) %>% 
-#   mutate(percent = 100* n/sum(n))
+ask_a_manager_2021 %>%
+  count(currency, sort=TRUE) %>%
+  mutate(percent = 100* n/sum(n))
 
 #We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies
 # We will convert the currencies all to USD using exchange rate data from quantmod
@@ -111,6 +111,16 @@ library(quantmod)
 currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
 
+currency_df
+```
+
+
+```{r}
+#creating a tibble witht the currency values taken from Oanda.
+currency_df <- tibble(
+  value = c(first(GBPUSD),first(AUDUSD),first(CADUSD),first(EURUSD)),
+  name = c("GBP", "AUD","CAD","EUR")
+)
 # GB<- ask_a_manager_2021 %>% filter(currency=="GBP")
 # 
 # for (row in 1:length(ask_a_manager_2021$currency)) {
@@ -119,6 +129,17 @@ currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
 #     print("tea?")
 #   }
 # }
+
+#creating a new column where all Top 5 most common currencies are converted to USD
+ask_a_manager_2021 %>% 
+  mutate(converted_salary_usd = case_when(
+    currency == "GBP" ~ annual_salary_usd*currency_df$value[currency_df$name=="GBP"],
+    currency == "AUD" ~ annual_salary_usd*currency_df$value[currency_df$name=="AUD"],
+    currency == "CAD" ~ annual_salary_usd*currency_df$value[currency_df$name=="CAD"],
+    currency == "EUR" ~ annual_salary_usd*currency_df$value[currency_df$name=="EUR"],
+    T ~ annual_salary
+  ))
+
 
 ```
 
