@@ -97,12 +97,17 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 ```
 
 only keep the commonly used currencies and standardize the number
+
+```{r}
+ask_a_manager_2021 %>%
+  count(currency, sort=TRUE) %>%
+  mutate(percent = 100* n/sum(n))
+
+```
+
 ```{r}
 library(quantmod)
-
-# ask_a_manager_2021 %>%
-#   count(currency, sort=TRUE) %>% 
-#   mutate(percent = 100* n/sum(n))
+#library to get currency data (and other financial data)
 
 #We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies
 # We will convert the currencies all to USD using exchange rate data from quantmod
@@ -111,15 +116,25 @@ library(quantmod)
 currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
 
-# GB<- ask_a_manager_2021 %>% filter(currency=="GBP")
-# 
-# for (row in 1:length(ask_a_manager_2021$currency)) {
-#   if(curr=="GBP") {
-#     ask_a_manager_2021[row,6] <- ask_a_manager_2021[row,6]*first(GBPUSD)
-#     print("tea?")
-#   }
-# }
+```
 
+
+```{r}
+ask_a_manager_2021 %>% filter(currency=="AUD/NZD") 
+```
+
+
+```{r}
+#creating a tibble witht the currency values taken from Oanda.
+currency_df <- tibble(
+  value = c(first(GBPUSD),first(AUDUSD),first(CADUSD),first(EURUSD),first(NZDUSD)),
+  name = c("GBP", "AUD","CAD","EUR","NZD")
+)
+
+```
+```{r}
+# Can see that the conversion works as wanted.
+ask_a_manager_2021 %>% filter(currency=="AUD/NZD") %>% select(country, annual_salary, converted_salary_usd)
 ```
 
 ```{r}
@@ -128,7 +143,7 @@ currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
 
 
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  filter(currency=="USD" &
+  filter(currency %in% c("USD","GBP","AUD/NZD","EUR","CAD") &
            !is.na(country))
 
 # filter out outliers of annual salary
@@ -136,7 +151,9 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 # ask_a_manager_2021 <- ask_a_manager_2021 %>% 
 #   filter(salary>1000 & salary<1000000)
 # todo
-
+ask_a_manager_2021 %>%
+  count(currency, sort=TRUE) %>%
+  mutate(percent = 100* n/sum(n))
 ```
 
 # Exploratory Data Analysis
@@ -355,15 +372,10 @@ ask_a_manager_2021 %>%
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 ```
-<<<<<<< HEAD
-### Mean Salary
 
-
-=======
 
 ### Race and Mean Salary 
 
->>>>>>> ad384794db78346e06f0ec0b05171260ea3d105b
 ```{r}
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
