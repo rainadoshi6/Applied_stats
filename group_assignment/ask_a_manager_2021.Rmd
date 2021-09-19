@@ -99,6 +99,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 only keep the commonly used currencies and standardize the number
 ```{r}
 library(quantmod)
+#library to get currency data (and other financial data)
 
 ask_a_manager_2021 %>%
   count(currency, sort=TRUE) %>%
@@ -108,7 +109,8 @@ ask_a_manager_2021 %>%
 # We will convert the currencies all to USD using exchange rate data from quantmod
 # The currency rate will be taken from the last date of the survey "2021-09-14"
 
-currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD"),
+#gets the currency data on "2021-09-14" for the currency pairs
+currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD","NZD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
 
 currency_df
@@ -116,10 +118,15 @@ currency_df
 
 
 ```{r}
+ask_a_manager_2021 %>% filter(currency=="AUD/NZD") 
+```
+
+
+```{r}
 #creating a tibble witht the currency values taken from Oanda.
 currency_df <- tibble(
-  value = c(first(GBPUSD),first(AUDUSD),first(CADUSD),first(EURUSD)),
-  name = c("GBP", "AUD","CAD","EUR")
+  value = c(first(GBPUSD),first(AUDUSD),first(CADUSD),first(EURUSD),first(NZDUSD)),
+  name = c("GBP", "AUD","CAD","EUR","NZD")
 )
 # GB<- ask_a_manager_2021 %>% filter(currency=="GBP")
 # 
@@ -131,12 +138,13 @@ currency_df <- tibble(
 # }
 
 #creating a new column where all Top 5 most common currencies are converted to USD
-ask_a_manager_2021 %>% 
+ask_a_manager_2021<-ask_a_manager_2021 %>% 
   mutate(converted_salary_usd = case_when(
-    currency == "GBP" ~ annual_salary_usd*currency_df$value[currency_df$name=="GBP"],
-    currency == "AUD" ~ annual_salary_usd*currency_df$value[currency_df$name=="AUD"],
-    currency == "CAD" ~ annual_salary_usd*currency_df$value[currency_df$name=="CAD"],
-    currency == "EUR" ~ annual_salary_usd*currency_df$value[currency_df$name=="EUR"],
+    currency == "GBP" ~ annual_salary*currency_df$value[currency_df$name=="GBP"],
+    currency == "AUD/NZD" & country=="Australia" ~ annual_salary*currency_df$value[currency_df$name=="AUD"],
+    currency == "AUD/NZD" & country=="New Zealand" ~ annual_salary*currency_df$value[currency_df$name=="NZD"],
+    currency == "CAD" ~ annual_salary*currency_df$value[currency_df$name=="CAD"],
+    currency == "EUR" ~ annual_salary*currency_df$value[currency_df$name=="EUR"],
     T ~ annual_salary
   ))
 
