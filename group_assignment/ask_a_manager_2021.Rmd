@@ -9,8 +9,7 @@ output: html_document
 knitr::opts_chunk$set(
   message = FALSE, 
   warning = FALSE, 
-  tidy=FALSE,     # display code as typed
-  size="small")   # slightly smaller font for code
+  tidy=FALSE)     # display code as typed
 options(digits = 3)
 
 # default figure size
@@ -49,7 +48,15 @@ skimr::skim(ask_a_manager_2021)
 
 # Data cleaning (exchange rate: Alex)
 
-remove missing values.
+After skimming the dataset, we took the below steps to clean the raw data :
+
+- Removing NA values
+- Removing outliers (out of 3$\sigma$)
+- Transforming certain datatype into factor
+- Selecting key industries from 1000+ industries reported
+- Unifying currencies
+
+## Removing NA values
 
 ```{r remove-na}
 # remove the NA values
@@ -59,7 +66,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
            highest_level_of_education_completed!="NA")
 ```
 
-remove outliers
+## Removing outliers
 
 ```{r remove-outliers-z-score}
 # using z-score. remove data out of 3 sigma
@@ -77,8 +84,9 @@ ask_a_manager_2021 <- ask_a_manager_2021[-which(abs(scale(ask_a_manager_2021$ann
 #   filter(salary>=low & salary<=up)
 ```
 
+## Transforming into ordered `factor` datatype
 
-transform into ordered `factor` datatype
+Namely, we want to make age, years of working experience, education into `factor`, and take the log of salary for the next step of EDA.
 
 ```{r, warning=FALSE}
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
@@ -95,9 +103,11 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
   janitor::clean_names() # clean columns names
 ```
 
-only keep the names of top 25 industries.
+## Selecting industries
 
-```{r}
+Since there are over 1000 reported industries in the dataset, we will only keep the top 25 industries which account for 92% of total entries
+
+```{r select top industry, warning=FALSE}
 # Industry is messy... it has > 1000 different industries.
 # we only keep the names of top 25 industries. (24597(92%) out of 26765 entries)
 industry_list <- ask_a_manager_2021 %>% 
@@ -105,6 +115,7 @@ industry_list <- ask_a_manager_2021 %>%
   mutate(percent = 100* n/sum(n)) %>% 
   slice_max(order_by = n, n = 25) %>% 
   select(industry)
+
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   mutate(industry = ifelse(industry %in% industry_list$industry,
                            industry,
@@ -112,7 +123,9 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 
 ```
 
-only keep the commonly used currencies and standardize the number
+## Unifying currencies
+
+Since there are 11 different currencies reported in the dataset, we want to unify all currencies into USD for the convenience of comparison analysis afterwards:
 
 ```{r}
 ask_a_manager_2021 %>%
@@ -120,14 +133,11 @@ ask_a_manager_2021 %>%
   mutate(percent = 100* n/sum(n))
 
 ```
+From the above table, We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies. We will convert the currencies all to USD using exchange rate data from library `quantmod`, and the exchange rate will be taken from the last date of the survey "2021-09-14"
 
 ```{r}
 library(quantmod)
 #library to get currency data (and other financial data)
-
-#We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies
-# We will convert the currencies all to USD using exchange rate data from quantmod
-# The currency rate will be taken from the last date of the survey "2021-09-14"
 
 currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD" , "NZD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
@@ -138,7 +148,7 @@ currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD" , "NZD/USD"),
 ```{r}
 ask_a_manager_2021 %>% filter(currency=="AUD/NZD") 
 ```
-
+Next, we want to creat a tibble with the currency values (exchange rate based on USD) taken from Oanda as reference in converting the top five currencies in the original dataset.
 
 ```{r}
 #creating a tibble witht the currency values taken from Oanda.
@@ -148,6 +158,8 @@ currency_df <- tibble(
 )
 
 ```
+
+
 ```{r}
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   mutate(salary_converted = case_when(
@@ -156,7 +168,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
     currency == "AUD/NZD" & country == "New Zealand" ~ annual_salary*currency_df$value[currency_df$name=="NZD"],
     currency == "CAD" ~ annual_salary*currency_df$value[currency_df$name=="CAD"],
     currency == "EUR" ~ annual_salary*currency_df$value[currency_df$name=="EUR"],
-    T ~ annual_salary
+    TRUE ~ annual_salary
   ))
 
 # Can see that the conversion works as wanted.
@@ -194,8 +206,6 @@ ask_a_manager_2021 %>%
   ggplot(aes(x=fct_relevel(age_group,levels=c("under 18","18-24","25-34","35-44","45-54","55-64","65 or over")), y=n)) +
   geom_bar(stat="identity") + labs(title = "Age distribution of Ask a Manager survey respondents",                                                 x="Age group",
                   y="Frequency",                                                  caption = "Source:Askamanager.com")
-
-?fct_relevel
 
 # 'country' 
 ask_a_manager_2021 %>%
@@ -247,7 +257,6 @@ How is salary distributed?
 
 favstats(ask_a_manager_2021$salary) # find a really rich guy here
 
-
 # density
 g1 <- ggplot(ask_a_manager_2021, aes(x=salary))+
   geom_density()+
@@ -285,7 +294,14 @@ ask_a_manager_2021 %>%
 
 ```
 
+Observations:
+
+- Computing & tech is the top-chosen industry among respondents, followed by Education and Non-profit
+- This indicate that the sample might include more respondents from industries have higher exposure to tech and internet.
+
 ## Salary ,Gender and Industry (Yuan)
+
+We are interested in the type of industries with top salary for man and woman.
 
 ```{r, fig.width=5}
 # Industries of top average salary for Man and Woman
@@ -298,7 +314,6 @@ salary_table <- ask_a_manager_2021 %>%
               names_from = gender,
               values_from = count:higher_edu_prop)
   
-
 g_man <- salary_table %>% 
   ggplot()+
   geom_bar(aes(y=fct_reorder(industry,avg_salary_Man), x=avg_salary_Man,fill=higher_edu_prop_Man), position="dodge", stat="identity")+
@@ -327,10 +342,15 @@ g_woman <- salary_table %>%
 
 gridExtra::grid.arrange(g_man, g_woman, nrow=1)
 ```
+Observations:
 
+- For both man and woman, the top earning industries are alike (Law, Computing or Tech, Business or Consulting)
+- Respondents from Law, Govenment and Education tends to have higher education level compared to the rest, reflecting the academic/professional requirements of these positions
+- The difference between the salary within sales and accounting, banking & finance is likely due to the subdivisions chosen based on gender nature
 
+We are also interested in the salary difference between man and woman within the same industry.
 
-```{r}
+```{r salary_gap_by_industry }
 # salary gap in different industries
 ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
@@ -362,12 +382,46 @@ ask_a_manager_2021 %>%
 
 
 ```
+Observations:
+
+- Man has a higher average salary than woman in most of the industries, with Law being the most significant
+- Woman has higher average salary in Art & Design
+- The proportion of male within computing or tech is significantly higher than that within other industries; yet the proportion only reaches c. 40%, reflecting the fact that most respondents are female because Ask_a_manager is more popular among women
+- The proportion of male is also higher in labour-intensive industries such as transport or logistics, engineering, utilities & telecommunications
 
 ## Education (Jean)
 
-We want to visually explore the relationship between one's education level and one's salary from the sample. In the below graph, the colored bars indicate the median salary for man and woman from the sample data, while the colored dots shows the average salary for both group. 
+Next, we want to see if there is a difference in the salary gap between man and woman for different education level.
 
-We can see that for both gender group, the mean salary is higher than the median salary, reflecting the fact that there are a number of outliers in our sample data with extremely high salary reported.
+```{r salary_gap_by_education}
+ask_a_manager_2021 %>% 
+  group_by(education, gender) %>% 
+  summarise(count = n(),
+            avg_salary = mean(salary)) %>% 
+  pivot_wider(id_cols = 1:4,
+              names_from = gender,
+              values_from = count:avg_salary) %>% 
+  mutate(size = count_Man+count_Woman,
+         male_prop = count_Man/(count_Man+count_Woman),
+         salary_gap = avg_salary_Man - avg_salary_Woman) %>% 
+  ggplot(aes(x=education, y=salary_gap,fill=male_prop))+
+  geom_col()+
+  scale_y_continuous(
+    breaks = seq(-20000,40000,5000)
+  ) +
+  scale_fill_gradient(low="pink", high="sky blue")+
+  labs(
+    title="Salary Gap at different Education Level",
+    y="Salary Gap in $",
+    x=""
+  )+
+  theme_wsj()+
+  theme(legend.position="bottom")+
+  NULL
+
+
+```
+
 
 ```{r Education_salary, warning=FALSE, echo=FALSE}
 
