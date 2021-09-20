@@ -569,10 +569,13 @@ ask_a_manager_2021 %>%
 ```{r}
 # Count by Age Group
 ask_a_manager_2021 %>% 
-  group_by(age_group) %>% 
+  group_by(age_group,gender) %>% 
   summarise(count=n()) %>% 
   ggplot(aes(y=fct_reorder(age_group,count),x=count))+
-  geom_col()
+  geom_col()+
+  scale_fill_gradient(low="pink", high="sky blue")+
+  theme_wsj()+
+  NULL
 # Sorting out the people who are 18+ 
 ask_a_manager_age <- ask_a_manager_2021 %>%  
                     mutate(factor(age_group,levels=c("18-24","25-34","35-44","45-54","55-64","65 or over")))
@@ -585,14 +588,19 @@ ask_a_manager_age <- ask_a_manager_2021 %>%
 ask_a_manager_age %>% 
   filter(age_group %in% c("18-24", "25-34" , "35-44" , "45-54" , "55-64"  )) %>% 
   group_by(age_group, gender) %>% 
-  summarise (median_salary_by_age = median (salary),
-             mean_salary_by_age = mean(salary)) %>% 
+  summarise (median_salary_by_age = median (converted_salary),
+             mean_salary_by_age = mean(converted_salary)) %>% 
   ggplot () +
   geom_col(aes (age_group, median_salary_by_age, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
-  geom_point(aes(x = age_group, y=mean_salary_by_age, color = gender))+
-  theme_bw()+
-  #formatC(x, format = "d")+
-  labs(  title =  "Median Salary by Age Group" , y="Salary" ,x = "Age Group") +
+ # geom_point(aes(x = age_group, y=mean_salary_by_age, color = gender))+
+  #geom_point( aes(age_group,mean_salary_by_age,group=1), color="light blue", size=2) +
+  theme_wsj()+
+  scale_fill_manual(values = c("sky blue", "pink")) +
+  theme(legend.position="bottom", axis.title=element_text(size=24))+
+  scale_y_continuous(labels = scales::comma) +
+  # geom_smooth(aes(x=age_group,y=mean_salary_by_age, colour="black"),se=F,span = 0.2)+ 
+  labs(  y="Salary" ,x = "Age Group") +
+  #geom_line(aes( x = age_group, y=mean_salary_by_age, gender="Male"  ),colour="blue",size=2)
   NULL
 ```
 
