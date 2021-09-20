@@ -822,12 +822,13 @@ From the result of the proportion test, we cannot see a clear difference between
 ```{r}
 ask_a_manager_2021_changed <- ask_a_manager_2021  %>%
 mutate(if_changed= if_else(overall_years_of_professional_experience == years_of_experience_in_field, "No", "Yes"))
+
 ```
 
 
 ```{r}
 ask_a_manager_2021_changed %>% 
-ggplot(aes(x=overall_years_of_professional_experience, y=annual_salary, color=if_changed))+
+ggplot(aes(x=fct_relevel(overall_years_of_professional_experience,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")), y=annual_salary, color=if_changed))+
   # scatter plot
   geom_point(alpha = 0.5)+
   # linear smooth line
@@ -840,8 +841,45 @@ ggplot(aes(x=overall_years_of_professional_experience, y=annual_salary, color=if
        y="Salary")+
   theme_bw()+
   NULL
-prop.test(~if_changed, data = ask_a_manager_2021, success = "Yes")
 ```
+
+
+```{r}
+ask_a_manager_2021_changed %>% 
+  group_by(overall_years_of_professional_experience, if_changed) %>% 
+  summarise (median_salary_over_time = median (salary),
+             mean_salary_over_time = mean(salary)) %>% 
+  ggplot () +
+  geom_col(aes (fct_relevel(overall_years_of_professional_experience,levels=c("1 year or less","2 - 4 years","5-7 years","8 - 10 years","11 - 20 years","21 - 30 years","31 - 40 years","41 years or more")), median_salary_over_time, fill=if_changed), position = position_dodge(width = 0.9), alpha = 0.7)+
+  geom_point(aes(x = overall_years_of_professional_experience, y=mean_salary_over_time, color = if_changed))+
+  theme_bw()+
+  #formatC(x, format = "d")+
+  labs(  title =  "Median Salary over time" , y="Salary" ,x = "Prof") +
+  NULL
+```
+
+
+```{r}
+prop.test(~if_changed, data = ask_a_manager_2021, success = "Yes")
+ask_a_manager_age %>% 
+  filter(age_group %in% c("18-24", "25-34" , "35-44" , "45-54" , "55-64"  )) %>% 
+  group_by(age_group, gender) %>% 
+  summarise (median_salary_by_age = median (salary),
+             mean_salary_by_age = mean(salary)) %>% 
+  ggplot () +
+  geom_col(aes (age_group, median_salary_by_age, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
+  geom_point(aes(x = age_group, y=mean_salary_by_age, color = gender))+
+  theme_bw()+
+  #formatC(x, format = "d")+
+  labs(  title =  "Median Salary by Age Group" , y="Salary" ,x = "Age Group") +
+  NULL
+```
+
+
+```{r}
+
+```
+
 
 
 
