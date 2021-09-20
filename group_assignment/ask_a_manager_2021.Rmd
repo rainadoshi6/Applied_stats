@@ -36,8 +36,6 @@ library(tidyquant)
 library(hrbrthemes)
 library(viridis)
 library(infer)
-library(infer)
-library()
 
 ```
 
@@ -159,8 +157,8 @@ currencies_preserved <- tibble(
 
 Here we create a new column called `converted_salary` which converts the 5 most common currencies in USD. These are then rounded to the nearest whole number. 
 ```{r}
-# Here we add 
-
+#the values are taken from the currencies_preserved$value as to preserve the analysis when 
+# getSymbols will no longer work. The index matches the currency pair.
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   mutate(converted_salary = case_when(
     currency == "GBP" ~ round(annual_salary*currencies_preserved$value[3]),
@@ -171,8 +169,6 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
     TRUE ~ round(annual_salary)
   ))
 
-# Can see that the conversion works as wanted.
-ask_a_manager_2021 %>%  select(country, annual_salary, converted_salary)
 ```
 
 ```{r}
@@ -536,6 +532,7 @@ plot_usmap(data=statesalarymap, values="mean_salary", color="black") + scale_fil
     high = "light green",
     name = "Mean Salary") +
   theme(legend.position = "right") +
+  + theme_wsj() +
   labs(title="Map of US States based on Average Salary")
 
 
@@ -861,6 +858,7 @@ m2 <- lm(salary ~ education+age_group, data=reg_data)
 m3 <- lm(salary ~ education+gender, data=reg_data)
 m4 <- lm(salary ~ education+gender+country, data=reg_data)
 
+skim(reg_data)
 
 huxreg(m1, m2, m3, m4,
        statistics = c('#observations' = 'nobs', 
