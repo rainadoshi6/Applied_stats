@@ -33,6 +33,9 @@ library(dplyr)
 library(huxtable)
 library(ggthemes)
 library(tidyquant)
+library(hrbrthemes)
+library(viridis)
+library(infer)
 
 ```
 
@@ -448,7 +451,7 @@ ask_a_manager_2021 %>%
   filter(industry %in% industry_list$industry) %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
- ggplot( aes(x=race, y=salary, color=race)) +
+ ggplot( aes(x=race, y=converted_salary, color=race)) +
     geom_jitter(color="black", size=0.01, alpha=0.9) +
    geom_boxplot(alpha=0.4) +
    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
@@ -488,7 +491,7 @@ When running a T-test on the two racial groups, White and Black or African Ameri
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
-  ggplot(aes(y = log(annual_salary), x=race))+
+  ggplot(aes(y = log(converted_salary), x=race))+
   geom_boxplot() +
   theme_bw()+
   theme(legend.position = "none")+
@@ -602,17 +605,14 @@ ask_a_manager_age %>%
 ### General Statistics & Boxplot
 
 ```{r}
-mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
+mosaic::favstats (converted_salary ~ gender, data=ask_a_manager_2021)
 
 ```
 
 ```{r}
-library(tidyverse)
-library(hrbrthemes)
-library(viridis)
 
 ask_a_manager_2021 %>% 
-  ggplot( aes(x=gender, y=salary, color=gender)) +
+  ggplot( aes(x=gender, y=converted_salary, color=gender)) +
     geom_jitter(color="black", size=0.4, alpha=0.9) +
     geom_boxplot(alpha=0.3) +
     scale_fill_viridis(discrete = TRUE, alpha=0.6) +
@@ -642,7 +642,7 @@ ask_a_manager_2021 %>%
 
 ask_a_manager_2021 <- ask_a_manager_2021 %>%
   filter(gender!="Non-binary")
-t.test(salary ~ gender, data = ask_a_manager_2021)
+t.test(converted_salary ~ gender, data = ask_a_manager_2021)
 ```
 
 ### Confidence Intervals 
@@ -659,7 +659,7 @@ ask_a_manager_2021_gender <- ask_a_manager_2021 %>%
   mutate(gender2 = as.numeric(gender2))
 
 
-mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021_gender) %>%
+mosaic::favstats (converted_salary ~ gender, data=ask_a_manager_2021_gender) %>%
 mutate(t_critical = qt(0.975,n-1),
          sd_mean = sd/sqrt(n),
          margin_of_error = t_critical*sd_mean,
@@ -675,13 +675,13 @@ Observation: Since two 95% confidence intervals do not overlap, we are at least 
 ```{r}
 # hypothesis testing using infer package
 diff <- ask_a_manager_2021_gender %>%
-  specify(annual_salary ~ gender) %>%
+  specify(converted_salary ~ gender) %>%
   calculate(stat = "diff in means", order = c("Woman", "Man"))
 
 set.seed(1234)
 salary_in_null_world <- ask_a_manager_2021_gender %>%
   filter(gender !="Non-binary") %>%
-  specify(annual_salary ~ gender) %>%
+  specify(converted_salary ~ gender) %>%
    # assuming independence of gender and salary
   hypothesize(null = "independence") %>%
    # generate 1000 reps, of type "permute"
@@ -697,7 +697,7 @@ p_value <- salary_in_null_world %>%
   get_pvalue(obs_stat = diff, direction="both")
 p_value
 ```
-Observation: Our null hypothesis is that the difference of omega between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. There is difference between the average male and female salary.
+Observation: Our null hypothesis is that the difference of annual salaries between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. There is difference between the average male and female salary.
 
 
 ## Gender vs Education (Jean)
@@ -830,7 +830,9 @@ ask_a_manager_2021_changed %>%
 
 
 ```{r}
-prop.test(~if_changed, data = ask_a_manager_2021, success = "Yes")
+t.test(salary~if_changed, data = ask_a_manager_2021_changed)
+
+
 ask_a_manager_age %>% 
   filter(age_group %in% c("18-24", "25-34" , "35-44" , "45-54" , "55-64"  )) %>% 
   group_by(age_group, gender) %>% 
