@@ -33,6 +33,8 @@ library(dplyr)
 library(huxtable)
 library(ggthemes)
 library(tidyquant)
+library(infer)
+library()
 
 ```
 
@@ -419,11 +421,7 @@ ask_a_manager_2021 %>%
              mean_salary_by_edu = mean(salary), ) %>% 
   ggplot () +
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
-<<<<<<< HEAD
-=======
-  geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
-  theme_wsj()+
->>>>>>> ccd0411c5a759423985c5748c82f042ecc44185d
+#Removed the section which broke the code
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   NULL
 
@@ -594,12 +592,6 @@ ask_a_manager_age %>%
   #formatC(x, format = "d")+
   labs(  title =  "Median Salary by Age Group" , y="Salary" ,x = "Age Group") +
   NULL
-```
-
-
-## Experience (Raghav)
-
-```{r}
 ```
 
 # Statistical Tests
