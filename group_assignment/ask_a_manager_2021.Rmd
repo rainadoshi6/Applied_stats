@@ -390,13 +390,10 @@ ask_a_manager_2021 %>%
     breaks = seq(-20000,40000,5000)
   ) +
   scale_fill_gradient(low="pink", high="sky blue")+
-  labs(
-    title="Salary Gap at different Education Level",
-    y="Salary Gap in $",
-    x=""
-  )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom", axis.title=element_text(size=24))+
+  ggtitle("Salary Gap at Different Education level") +
+  xlab("Education Level") + ylab ("Salary Gap Between Man and Woman in $") + 
   NULL
 
 
@@ -847,12 +844,6 @@ ask_a_manager_age %>%
   labs(  title =  "Median Salary by Age Group" , y="Salary" ,x = "Age Group") +
   NULL
 ```
-
-
-```{r}
-
-```
-
 
 
 
