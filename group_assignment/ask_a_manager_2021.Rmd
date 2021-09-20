@@ -386,7 +386,7 @@ Next, we want to see if there is a difference in the salary gap between man and 
 ask_a_manager_2021 %>% 
   group_by(education, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary)) %>% 
+            avg_salary = mean(converted_salary)) %>% 
   pivot_wider(id_cols = 1:4,
               names_from = gender,
               values_from = count:avg_salary) %>% 
@@ -416,8 +416,8 @@ ask_a_manager_2021 %>%
   mutate(sex = factor (gender, labels = c("Man", "Woman"))) %>% 
   rename(Education = education) %>% 
   group_by(Education, gender) %>% 
-  summarise (median_salary_by_edu = median (salary),
-             mean_salary_by_edu = mean(salary), ) %>% 
+  summarise (median_salary_by_edu = median (converted_salary),
+             mean_salary_by_edu = mean(converted_salary), ) %>% 
   ggplot () +
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
 #Removed the section which broke the code
