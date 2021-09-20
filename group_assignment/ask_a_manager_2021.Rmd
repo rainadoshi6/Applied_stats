@@ -33,6 +33,9 @@ library(dplyr)
 library(huxtable)
 library(ggthemes)
 library(tidyquant)
+library(hrbrthemes)
+library(viridis)
+library(infer)
 
 ```
 
@@ -133,6 +136,7 @@ ask_a_manager_2021 %>%
   mutate(percent = 100* n/sum(n))
 
 ```
+
 From the above table, We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies. We will convert the currencies all to USD using exchange rate data from library `quantmod`, and the exchange rate will be taken from the last date of the survey "2021-09-14"
 
 ```{r warning=FALSE, message=FALSE}
@@ -154,8 +158,8 @@ currencies_preserved <- tibble(
 
 Here we create a new column called `converted_salary` which converts the 5 most common currencies in USD. These are then rounded to the nearest whole number. 
 ```{r}
-# Here we add 
-
+#the values are taken from the currencies_preserved$value as to preserve the analysis when 
+# getSymbols will no longer work. The index matches the currency pair.
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   mutate(converted_salary = case_when(
     currency == "GBP" ~ round(annual_salary*currencies_preserved$value[3]),
@@ -166,8 +170,6 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
     TRUE ~ round(annual_salary)
   ))
 
-# Can see that the conversion works as wanted.
-ask_a_manager_2021 %>%  select(country, annual_salary, converted_salary)
 ```
 
 ```{r}
@@ -272,7 +274,7 @@ gridExtra::grid.arrange(g1,g2,g3,g4)
 
 Observation: This is a right skewed distribution. 
 
-## Industry(Yuan)
+## Industry (Yuan)
 
 ```{r}
 ask_a_manager_2021 %>% 
@@ -296,40 +298,54 @@ We are interested in the type of industries with top salary for man and woman.
 salary_table <- ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary),
+            avg_salary = mean(converted_salary),
             higher_edu_prop = sum(higher_edu)/n()) %>% 
   pivot_wider(id_cols = 1:5,
               names_from = gender,
               values_from = count:higher_edu_prop)
   
 g_man <- salary_table %>% 
-  ggplot()+
-  geom_bar(aes(y=fct_reorder(industry,avg_salary_Man), x=avg_salary_Man,fill=higher_edu_prop_Man), position="dodge", stat="identity")+
+  ggplot(aes(y=fct_reorder(industry,avg_salary_Man), x=avg_salary_Man,fill=higher_edu_prop_Man))+
+  geom_bar(position="dodge", stat="identity")+
+  geom_text(aes(label=paste(avg_salary_Man%/%1000,"k")),
+            position=position_dodge(width=0.9), hjust=0,vjust=0)+
+  scale_x_continuous(labels = scales::comma) +
   scale_fill_gradient(low="sky blue", high="blue")+
   labs(
     title="Man",
     x="Annual Salary $",
-    y="Industry"
+    y="Industry",
+    fill="Higher Education %"
   )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom",
+        legend.title=element_text(size=13))+
   NULL
 
+ggsave("highest_paid_industries_male.png",width = 12,height = 8,limitsize = F)
 g_woman <- salary_table %>% 
-  ggplot()+
-  geom_bar(aes(y=fct_reorder(industry,avg_salary_Woman), x=avg_salary_Woman,fill=higher_edu_prop_Woman), position="dodge", stat="identity")+
+  ggplot(aes(y=fct_reorder(industry,avg_salary_Woman), x=avg_salary_Woman,fill=higher_edu_prop_Woman))+
+  geom_bar( position="dodge", stat="identity")+
+  geom_text(aes(label=paste(avg_salary_Woman%/%1000,"k")),
+              position=position_dodge(width=0.9), hjust=0,vjust=0)+
+  scale_x_continuous(labels = scales::comma) +
   scale_fill_gradient(low="pink", high="red")+
   labs(
     title="Woman",
     x="Annual Salary $",
-    y="Industry"
+    y="Industry",
+    fill="Higher Education %"
   )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom",
+        legend.title=element_text(size=13))+
   NULL
 
-gridExtra::grid.arrange(g_man, g_woman, nrow=1)
+
+ggsave("highest_paid_industries_female.png",width = 12,height = 8,limitsize = F)
+
 ```
+
 Observations:
 
 - For both man and woman, the top earning industries are alike (Law, Computing or Tech, Business or Consulting)
@@ -338,12 +354,12 @@ Observations:
 
 We are also interested in the salary difference between man and woman within the same industry.
 
-```{r salary_gap_by_industry }
+```{r salary_gap_by_industry}
 # salary gap in different industries
 ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary)) %>% 
+            avg_salary = mean(converted_salary)) %>% 
   pivot_wider(id_cols = 1:4,
               names_from = gender,
               values_from = count:avg_salary) %>% 
@@ -358,18 +374,22 @@ ask_a_manager_2021 %>%
   scale_x_continuous(
     breaks = seq(-20000,40000,5000)
   ) +
-  scale_fill_gradient(low="pink", high="sky blue")+
+  scale_fill_gradient(low="pink", high="blue")+
   labs(
-    title="TITLE",
+    title="Salary Gap and Sex Ratio",
     x="Salary Gap in $",
-    y=""
+    y="",
+    fill="Male %"
   )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom",
+        legend.title=element_text(size=13))+
   NULL
 
+ggsave("salary_gap.png",width = 12,height = 8,limitsize = F)
 
 ```
+
 Observations:
 
 - Man has a higher average salary than woman in most of the industries, with Law being the most significant
@@ -385,7 +405,7 @@ Next, we want to see if there is a difference in the salary gap between man and 
 ask_a_manager_2021 %>% 
   group_by(education, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary)) %>% 
+            avg_salary = mean(converted_salary)) %>% 
   pivot_wider(id_cols = 1:4,
               names_from = gender,
               values_from = count:avg_salary) %>% 
@@ -415,15 +435,11 @@ ask_a_manager_2021 %>%
   mutate(sex = factor (gender, labels = c("Man", "Woman"))) %>% 
   rename(Education = education) %>% 
   group_by(Education, gender) %>% 
-  summarise (median_salary_by_edu = median (salary),
-             mean_salary_by_edu = mean(salary), ) %>% 
+  summarise (median_salary_by_edu = median (converted_salary),
+             mean_salary_by_edu = mean(converted_salary), ) %>% 
   ggplot () +
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
-<<<<<<< HEAD
-=======
-  geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
-  theme_wsj()+
->>>>>>> ccd0411c5a759423985c5748c82f042ecc44185d
+#Removed the section which broke the code
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   NULL
 
@@ -456,7 +472,7 @@ ask_a_manager_2021 %>%
   filter(industry %in% industry_list$industry) %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
- ggplot( aes(x=race, y=salary, color=race)) +
+ ggplot( aes(x=race, y=converted_salary, color=race)) +
     geom_jitter(color="black", size=0.01, alpha=0.9) +
    geom_boxplot(alpha=0.4) +
    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
@@ -496,7 +512,7 @@ When running a T-test on the two racial groups, White and Black or African Ameri
 ask_a_manager_2021 %>% 
   group_by(race) %>% 
   filter(n() > 500) %>% 
-  ggplot(aes(y = log(annual_salary), x=race))+
+  ggplot(aes(y = log(converted_salary), x=race))+
   geom_boxplot() +
   theme_bw()+
   theme(legend.position = "none")+
@@ -604,12 +620,6 @@ ask_a_manager_age %>%
   NULL
 ```
 
-
-## Experience (Raghav)
-
-```{r}
-```
-
 # Statistical Tests
 
 
@@ -618,17 +628,14 @@ ask_a_manager_age %>%
 ### General Statistics & Boxplot
 
 ```{r}
-mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021)
+mosaic::favstats (converted_salary ~ gender, data=ask_a_manager_2021)
 
 ```
 
 ```{r}
-library(tidyverse)
-library(hrbrthemes)
-library(viridis)
 
 ask_a_manager_2021 %>% 
-  ggplot( aes(x=gender, y=salary, color=gender)) +
+  ggplot( aes(x=gender, y=converted_salary, color=gender)) +
     geom_jitter(color="black", size=0.4, alpha=0.9) +
     geom_boxplot(alpha=0.3) +
     scale_fill_viridis(discrete = TRUE, alpha=0.6) +
@@ -658,7 +665,7 @@ ask_a_manager_2021 %>%
 
 ask_a_manager_2021 <- ask_a_manager_2021 %>%
   filter(gender!="Non-binary")
-t.test(salary ~ gender, data = ask_a_manager_2021)
+t.test(converted_salary ~ gender, data = ask_a_manager_2021)
 ```
 
 ### Confidence Intervals 
@@ -675,7 +682,7 @@ ask_a_manager_2021_gender <- ask_a_manager_2021 %>%
   mutate(gender2 = as.numeric(gender2))
 
 
-mosaic::favstats (annual_salary ~ gender, data=ask_a_manager_2021_gender) %>%
+mosaic::favstats (converted_salary ~ gender, data=ask_a_manager_2021_gender) %>%
 mutate(t_critical = qt(0.975,n-1),
          sd_mean = sd/sqrt(n),
          margin_of_error = t_critical*sd_mean,
@@ -691,13 +698,13 @@ Observation: Since two 95% confidence intervals do not overlap, we are at least 
 ```{r}
 # hypothesis testing using infer package
 diff <- ask_a_manager_2021_gender %>%
-  specify(annual_salary ~ gender) %>%
+  specify(converted_salary ~ gender) %>%
   calculate(stat = "diff in means", order = c("Woman", "Man"))
 
 set.seed(1234)
 salary_in_null_world <- ask_a_manager_2021_gender %>%
   filter(gender !="Non-binary") %>%
-  specify(annual_salary ~ gender) %>%
+  specify(converted_salary ~ gender) %>%
    # assuming independence of gender and salary
   hypothesize(null = "independence") %>%
    # generate 1000 reps, of type "permute"
@@ -713,7 +720,7 @@ p_value <- salary_in_null_world %>%
   get_pvalue(obs_stat = diff, direction="both")
 p_value
 ```
-Observation: Our null hypothesis is that the difference of omega between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. There is difference between the average male and female salary.
+Observation: Our null hypothesis is that the difference of annual salaries between male and female is 0 and we get a p_value very close to 0. Therefore we reject the null hypothesis with 95% confidence. There is difference between the average male and female salary.
 
 
 ## Gender vs Education (Jean)
@@ -846,6 +853,9 @@ ask_a_manager_2021_changed %>%
 
 
 ```{r}
+t.test(salary~if_changed, data = ask_a_manager_2021_changed)
+
+
 prop.test(~if_changed, data = ask_a_manager_2021_changed, success = "Yes")
 ask_a_manager_age %>% 
   filter(age_group %in% c("18-24", "25-34" , "35-44" , "45-54" , "55-64"  )) %>% 
@@ -862,20 +872,24 @@ ask_a_manager_age %>%
 ```
 
 
-
-
 # Regression Analysis (Yuan)
+
+```{r}
+colnames(ask_a_manager_2021)
+```
+
 
 ```{r}
 reg_data <- ask_a_manager_2021 %>% 
   mutate(country = ifelse(country=="US","US","Non-US"))
-m1 <- lm(salary ~ education, data=reg_data)
-m2 <- lm(salary ~ education+age_group, data=reg_data)
-m3 <- lm(salary ~ education+gender, data=reg_data)
-m4 <- lm(salary ~ education+gender+country, data=reg_data)
 
+m1 <- lm(converted_salary ~ education, data=reg_data)
+m2 <- lm(converted_salary ~ education + age_group, data=reg_data)
+m3 <- lm(converted_salary ~ education + gender, data=reg_data)
+m4 <- lm(converted_salary ~ education + age_group + gender + pro_exp + field_exp, data=reg_data)
+m5 <- lm(converted_salary ~ education + age_group + gender + field_exp, data=reg_data)
 
-huxreg(m1, m2, m3, m4,
+huxreg(m1, m2, m3, m4, m5,
        statistics = c('#observations' = 'nobs', 
                       'R squared' = 'r.squared', 
                       'Adj. R Squared' = 'adj.r.squared', 
