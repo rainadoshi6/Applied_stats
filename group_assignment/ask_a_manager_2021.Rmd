@@ -125,7 +125,7 @@ ask_a_manager_2021 <- ask_a_manager_2021 %>%
 
 ## Unifying currencies
 
-Since there are 11 different currencies reported in the dataset, we want to unify all currencies into USD for the convenience of comparison analysis afterwards:
+Since there are 11 different currencies reported in the dataset, we want to unify the most common currencies into USD for the convenience of comparison analysis afterwards. We decided to convert all currencies with occurences greater than 100 into USD. This included CAD,GBP,EUR,AUD/NZD. Other was not converted as there wasn't specific information on the currency.
 
 ```{r}
 ask_a_manager_2021 %>%
@@ -139,8 +139,16 @@ From the above table, We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most
 library(quantmod)
 #library to get currency data (and other financial data)
 
+#gets the currency rate for the currency pairs. This uses the Oanda which keeps currency data for the last 180 days.
+#In 180 days from "2021-09-14" the code will no longer return the currency rates.
 currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD" , "NZD/USD"),
                         from="2021-09-14", to="2021-09-14", src="oanda")
+
+#In order to preserve the analysis for after 180 days we can hard code the currency rates into a tibble
+currencies_preserved <- tibble(
+  name = c("EUR/USD","CAD/USD","GBP/USD","AUD/USD" , "NZD/USD"),
+  value = c(1.18,0.79,1.38,0.734,0.711)
+)
 
 ```
 
@@ -150,11 +158,11 @@ Here we create a new column called `converted_salary` which converts the 5 most 
 
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   mutate(converted_salary = case_when(
-    currency == "GBP" ~ round(annual_salary*as.numeric(first(GBPUSD))),
-    currency == "AUD/NZD" & country == "Australia" ~ round(annual_salary*as.numeric(first(AUDUSD))),
-    currency == "AUD/NZD" & country == "New Zealand" ~ round(annual_salary*as.numeric(first(NZDUSD))),
-    currency == "CAD" ~ round(annual_salary*as.numeric(first(CADUSD))),
-    currency == "EUR" ~ round(annual_salary*as.numeric(first(EURUSD))),
+    currency == "GBP" ~ round(annual_salary*currencies_preserved$value[3]),
+    currency == "AUD/NZD" & country == "Australia" ~ round(annual_salary*currencies_preserved$value[4]),
+    currency == "AUD/NZD" & country == "New Zealand" ~ round(annual_salary*currencies_preserved$value[5]),
+    currency == "CAD" ~ round(annual_salary*currencies_preserved$value[2]),
+    currency == "EUR" ~ round(annual_salary*currencies_preserved$value[1]),
     TRUE ~ round(annual_salary)
   ))
 
