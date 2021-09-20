@@ -135,7 +135,7 @@ ask_a_manager_2021 %>%
 ```
 From the above table, We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies. We will convert the currencies all to USD using exchange rate data from library `quantmod`, and the exchange rate will be taken from the last date of the survey "2021-09-14"
 
-```{r}
+```{r warning=FALSE, message=FALSE}
 library(quantmod)
 #library to get currency data (and other financial data)
 
@@ -144,51 +144,31 @@ currencies <-getSymbols(c("EUR/USD","CAD/USD","GBP/USD","AUD/USD" , "NZD/USD"),
 
 ```
 
-
+Here we create a new column called `converted_salary` which converts the 5 most common currencies in USD. These are then rounded to the nearest whole number. 
 ```{r}
-ask_a_manager_2021 %>% filter(currency=="AUD/NZD") 
-```
-Next, we want to creat a tibble with the currency values (exchange rate based on USD) taken from Oanda as reference in converting the top five currencies in the original dataset.
+# Here we add 
 
-```{r}
-#creating a tibble witht the currency values taken from Oanda.
-currency_df <- tibble(
-  value = c(first(GBPUSD),first(AUDUSD),first(CADUSD),first(EURUSD),first(NZDUSD)),
-  name = c("GBP", "AUD","CAD","EUR","NZD")
-)
-
-```
-
-
-```{r}
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-  mutate(salary_converted = case_when(
-    currency == "GBP" ~ annual_salary*currency_df$value[currency_df$name=="GBP"],
-    currency == "AUD/NZD" & country == "Australia" ~ annual_salary*currency_df$value[currency_df$name=="AUD"],
-    currency == "AUD/NZD" & country == "New Zealand" ~ annual_salary*currency_df$value[currency_df$name=="NZD"],
-    currency == "CAD" ~ annual_salary*currency_df$value[currency_df$name=="CAD"],
-    currency == "EUR" ~ annual_salary*currency_df$value[currency_df$name=="EUR"],
-    TRUE ~ annual_salary
+  mutate(converted_salary = case_when(
+    currency == "GBP" ~ round(annual_salary*as.numeric(first(GBPUSD))),
+    currency == "AUD/NZD" & country == "Australia" ~ round(annual_salary*as.numeric(first(AUDUSD))),
+    currency == "AUD/NZD" & country == "New Zealand" ~ round(annual_salary*as.numeric(first(NZDUSD))),
+    currency == "CAD" ~ round(annual_salary*as.numeric(first(CADUSD))),
+    currency == "EUR" ~ round(annual_salary*as.numeric(first(EURUSD))),
+    TRUE ~ round(annual_salary)
   ))
 
 # Can see that the conversion works as wanted.
-ask_a_manager_2021 %>%  select(country, annual_salary, salary_converted)
+ask_a_manager_2021 %>%  select(country, annual_salary, converted_salary)
 ```
 
 ```{r}
-# transform all the currencies into USD and only keep the commonly used currencies
-# todo (Alex)
-
+#Here we filter the dataset to only include the salaries that were converted into USD terms. The other currencies also included lots of outliers which we also get rid of here.
 
 ask_a_manager_2021 <- ask_a_manager_2021 %>% 
   filter(currency %in% c("USD","GBP","AUD/NZD","EUR","CAD") &
            !is.na(country))
 
-# filter out outliers of annual salary
-# regression for both datasets
-# ask_a_manager_2021 <- ask_a_manager_2021 %>% 
-#   filter(salary>1000 & salary<1000000)
-# todo
 ask_a_manager_2021 %>%
   count(currency, sort=TRUE) %>%
   mutate(percent = 100* n/sum(n))
