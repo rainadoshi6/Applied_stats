@@ -532,7 +532,6 @@ plot_usmap(data=statesalarymap, values="mean_salary", color="black") + scale_fil
     high = "light green",
     name = "Mean Salary") +
   theme(legend.position = "right") +
-  + theme_wsj() +
   labs(title="Map of US States based on Average Salary")
 
 
