@@ -597,6 +597,8 @@ ask_a_manager_age <- ask_a_manager_2021 %>%
                     mutate(factor(age_group,levels=c("18-24","25-34","35-44","45-54","55-64","65 or over")))
      
 ```
+
+
 ```{r}
 #need to change colors for male and female ?!
 #there are only 6 women in under 18 category so excluding them for the graph
@@ -608,14 +610,15 @@ ask_a_manager_age %>%
              mean_salary_by_age = mean(converted_salary)) %>% 
   ggplot () +
   geom_col(aes (age_group, median_salary_by_age, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
- # geom_point(aes(x = age_group, y=mean_salary_by_age, color = gender))+
+  #scale_color_brewer(direction = -1) +
+  geom_point(aes(x = age_group, y=mean_salary_by_age, fill = gender , color= gender))+
   #geom_point( aes(age_group,mean_salary_by_age,group=1), color="light blue", size=2) +
-  theme_wsj()+
-  scale_fill_manual(values = c("sky blue", "pink")) +
-  theme(legend.position="bottom", axis.title=element_text(size=24))+
+  #theme_wsj()+
+  scale_fill_manual(values = c("black", "dark grey")) +
+  theme(legend.position="bottom", axis.title=element_text(size=22))+
   scale_y_continuous(labels = scales::comma) +
   # geom_smooth(aes(x=age_group,y=mean_salary_by_age, colour="black"),se=F,span = 0.2)+ 
-  labs(  y="Salary" ,x = "Age Group") +
+  labs( title="Salary vs Age" ,  y="Salary" ,x = "Age Group") +
   #geom_line(aes( x = age_group, y=mean_salary_by_age, gender="Male"  ),colour="blue",size=2)
   NULL
 ```
