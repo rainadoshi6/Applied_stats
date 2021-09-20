@@ -136,6 +136,7 @@ ask_a_manager_2021 %>%
   mutate(percent = 100* n/sum(n))
 
 ```
+
 From the above table, We can see that USD, CAD, GBP, EUR, (AUD/NZD) are the most common currencies. We will convert the currencies all to USD using exchange rate data from library `quantmod`, and the exchange rate will be taken from the last date of the survey "2021-09-14"
 
 ```{r warning=FALSE, message=FALSE}
@@ -273,7 +274,7 @@ gridExtra::grid.arrange(g1,g2,g3,g4)
 
 Observation: This is a right skewed distribution. 
 
-## Industry(Yuan)
+## Industry (Yuan)
 
 ```{r}
 ask_a_manager_2021 %>% 
@@ -297,40 +298,54 @@ We are interested in the type of industries with top salary for man and woman.
 salary_table <- ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary),
+            avg_salary = mean(converted_salary),
             higher_edu_prop = sum(higher_edu)/n()) %>% 
   pivot_wider(id_cols = 1:5,
               names_from = gender,
               values_from = count:higher_edu_prop)
   
 g_man <- salary_table %>% 
-  ggplot()+
-  geom_bar(aes(y=fct_reorder(industry,avg_salary_Man), x=avg_salary_Man,fill=higher_edu_prop_Man), position="dodge", stat="identity")+
+  ggplot(aes(y=fct_reorder(industry,avg_salary_Man), x=avg_salary_Man,fill=higher_edu_prop_Man))+
+  geom_bar(position="dodge", stat="identity")+
+  geom_text(aes(label=paste(avg_salary_Man%/%1000,"k")),
+            position=position_dodge(width=0.9), hjust=0,vjust=0)+
+  scale_x_continuous(labels = scales::comma) +
   scale_fill_gradient(low="sky blue", high="blue")+
   labs(
     title="Man",
     x="Annual Salary $",
-    y="Industry"
+    y="Industry",
+    fill="Higher Education %"
   )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom",
+        legend.title=element_text(size=13))+
   NULL
 
+ggsave("highest_paid_industries_male.png",width = 12,height = 8,limitsize = F)
 g_woman <- salary_table %>% 
-  ggplot()+
-  geom_bar(aes(y=fct_reorder(industry,avg_salary_Woman), x=avg_salary_Woman,fill=higher_edu_prop_Woman), position="dodge", stat="identity")+
+  ggplot(aes(y=fct_reorder(industry,avg_salary_Woman), x=avg_salary_Woman,fill=higher_edu_prop_Woman))+
+  geom_bar( position="dodge", stat="identity")+
+  geom_text(aes(label=paste(avg_salary_Woman%/%1000,"k")),
+              position=position_dodge(width=0.9), hjust=0,vjust=0)+
+  scale_x_continuous(labels = scales::comma) +
   scale_fill_gradient(low="pink", high="red")+
   labs(
     title="Woman",
     x="Annual Salary $",
-    y="Industry"
+    y="Industry",
+    fill="Higher Education %"
   )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom",
+        legend.title=element_text(size=13))+
   NULL
 
-gridExtra::grid.arrange(g_man, g_woman, nrow=1)
+
+ggsave("highest_paid_industries_female.png",width = 12,height = 8,limitsize = F)
+
 ```
+
 Observations:
 
 - For both man and woman, the top earning industries are alike (Law, Computing or Tech, Business or Consulting)
@@ -339,12 +354,12 @@ Observations:
 
 We are also interested in the salary difference between man and woman within the same industry.
 
-```{r salary_gap_by_industry }
+```{r salary_gap_by_industry}
 # salary gap in different industries
 ask_a_manager_2021 %>% 
   group_by(industry, gender) %>% 
   summarise(count = n(),
-            avg_salary = mean(salary)) %>% 
+            avg_salary = mean(converted_salary)) %>% 
   pivot_wider(id_cols = 1:4,
               names_from = gender,
               values_from = count:avg_salary) %>% 
@@ -359,18 +374,22 @@ ask_a_manager_2021 %>%
   scale_x_continuous(
     breaks = seq(-20000,40000,5000)
   ) +
-  scale_fill_gradient(low="pink", high="sky blue")+
+  scale_fill_gradient(low="pink", high="blue")+
   labs(
-    title="TITLE",
+    title="Salary Gap and Sex Ratio",
     x="Salary Gap in $",
-    y=""
+    y="",
+    fill="Male %"
   )+
   theme_wsj()+
-  theme(legend.position="bottom")+
+  theme(legend.position="bottom",
+        legend.title=element_text(size=13))+
   NULL
 
+ggsave("salary_gap.png",width = 12,height = 8,limitsize = F)
 
 ```
+
 Observations:
 
 - Man has a higher average salary than woman in most of the industries, with Law being the most significant
@@ -845,21 +864,24 @@ ask_a_manager_age %>%
 ```
 
 
-
-
 # Regression Analysis (Yuan)
+
+```{r}
+colnames(ask_a_manager_2021)
+```
+
 
 ```{r}
 reg_data <- ask_a_manager_2021 %>% 
   mutate(country = ifelse(country=="US","US","Non-US"))
-m1 <- lm(salary ~ education, data=reg_data)
-m2 <- lm(salary ~ education+age_group, data=reg_data)
-m3 <- lm(salary ~ education+gender, data=reg_data)
-m4 <- lm(salary ~ education+gender+country, data=reg_data)
 
-skim(reg_data)
+m1 <- lm(converted_salary ~ education, data=reg_data)
+m2 <- lm(converted_salary ~ education + age_group, data=reg_data)
+m3 <- lm(converted_salary ~ education + gender, data=reg_data)
+m4 <- lm(converted_salary ~ education + age_group + gender + pro_exp + field_exp, data=reg_data)
+m5 <- lm(converted_salary ~ education + age_group + gender + field_exp, data=reg_data)
 
-huxreg(m1, m2, m3, m4,
+huxreg(m1, m2, m3, m4, m5,
        statistics = c('#observations' = 'nobs', 
                       'R squared' = 'r.squared', 
                       'Adj. R Squared' = 'adj.r.squared', 
