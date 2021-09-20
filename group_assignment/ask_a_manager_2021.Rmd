@@ -414,6 +414,11 @@ ask_a_manager_2021 %>%
              mean_salary_by_edu = mean(salary), ) %>% 
   ggplot () +
   geom_col(aes (Education, median_salary_by_edu, fill = gender), position = position_dodge(width = 0.9), alpha = 0.7)+
+<<<<<<< HEAD
+=======
+  geom_point(aes(x = Education, y=mean_salary_by_edu, color = gender))+
+  theme_wsj()+
+>>>>>>> ccd0411c5a759423985c5748c82f042ecc44185d
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   NULL
 
@@ -437,11 +442,6 @@ ask_a_manager_2021 %>%
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) + 
   NULL
 ```
-<<<<<<< HEAD
-=======
-
-### Mean Salary
->>>>>>> 6ae12950d8c1bde00349d71b6ea96c374744fab4
 
 
 ### Race and Mean Salary 
