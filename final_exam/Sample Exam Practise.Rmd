@@ -1,0 +1,196 @@
+---
+title: "Peter V: Sample Exam Revision 23 SEPT 2021::12.45-15.30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyr)
+library(Rcpp)
+library(tidyverse)
+library(tidyselect)
+library(ggplot2)
+library(mosaic)
+library(dplyr)
+library(gapminder)
+library(fivethirtyeight)
+library(skimr)
+```
+
+```{r Q1 (i)}
+
+ggplot(gapminder) +
+  geom_point(aes(x = gdpPercap, y = lifeExp, colour = "blue"))
+
+# FALSE. WHY? The argument colour = "blue" is included in the mapping, and as such it is treated as an aesthetic argument. 
+
+# the mapping should be between a variable and a value 
+
+ggplot(gapminder) +
+  geom_point(aes(x = gdpPercap, y = lifeExp), colour = "blue")
+
+ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp)) + 
+  geom_point( colour = "blue")
+
+ggplot(gapminder) +
+  geom_point(aes(x = gdpPercap, y = lifeExp, colour = 1))
+
+ggplot(gapminder) +
+  geom_point(aes(x = gdpPercap, y = lifeExp, colour = 1:nrow(gapminder)))
+
+ggplot(gapminder) +
+  geom_point(aes(x = gdpPercap, y = lifeExp), colour = 1:nrow(gapminder))
+
+```
+
+```{r Q1 (ii)}
+
+pregnant <- c("yes", "no")
+male <- c(NA, 20)
+female <- c(10, 12)
+
+untidy_before <- data.frame(pregnant, male, female)
+
+untidy_before
+
+# we have two variables, gender (female, male) and pregnat (yes, no), and then we have count 
+# the obser in this data set are unique combinations of gender and pregnancy status
+
+# tidyr::pivor_longer
+
+tidy1 <- pivot_longer(untidy_before, cols = c(male, female), names_to = "sex", values_to = "count") %>% na.omit()
+
+tidy1
+
+# tidy6 <- pivot_wider(untidy_before, names_to = pregnat, values_from = female) look at this
+
+# function tidyr::gather()
+
+tidy2 <- untidy_before %>% 
+          gather(male, female, key = "sex", value = "count")
+
+tidy2
+
+tidy3 <- untidy_before %>% 
+          gather(female, male, key = "sex", value = "count", na.rm=TRUE)
+
+tidy3
+
+tidy4 <- untidy_before %>% 
+          gather(key = "sex", value = "count", -pregnant)
+
+tidy4
+
+tidy5 <- untidy_before %>% 
+          gather(key = "sex", value = "count", 2:3)
+
+tidy5
+
+# suggestions to practice pivot_wider(), slice(), order(), arrange(), summarize(), mutate(),  group_by(), filter(), select()
+
+```
+
+```{r Q1 (iii) Bikes in London}
+
+bike <- read_csv("londonBikes.csv") # a bit different data set than in the sample exam we have shared with you
+glimpse(bike)
+
+bike_update <- bike %>% mutate(month_name = as.ordered(months(as.Date(date, '%d-%m-%Y'))))
+bike_update <- bike_update %>% mutate(month = match(month_name, month.name))
+bike_update <- bike_update %>% mutate(month = as.double(month))
+glimpse(bike_update)
+
+# incorrect for month-by-month basis
+
+ggplot(bike_update, mapping = aes(x=month, y=bikes_hired)) + geom_boxplot()
+
+# correct
+
+ggplot(bike_update, mapping = aes(x=month_name, y=bikes_hired)) + geom_boxplot()
+
+ggplot(bike_update, mapping = aes(x=factor(month), y=bikes_hired)) + geom_boxplot()
+
+ggplot(bike_update, mapping = aes(x=as.factor(month), y=bikes_hired)) + geom_boxplot()
+
+ggplot(bike_update, mapping = aes(x=month, y=bikes_hired, group=month)) + geom_boxplot()
+
+
+# recap about changing variable types, do not forgot about glimpse(), skim()!
+
+# summarize() , mean(), median() 
+
+# as.factor()
+
+# factor(variable_name, levels=)
+
+# as.double()
+
+# as.numeric()
+
+# typeof()
+
+```
+
+
+```{r Q1 (iv) top 10 in desc order}
+
+glimpse(drinks)
+skim(drinks)
+head(drinks,5)
+tail(drinks,5)
+
+# practice order()
+
+dplyr::top_n(drinks, 10, beer_servings)[order(dplyr::top_n(drinks, 10, beer_servings)$beer_servings, decreasing = TRUE), ]
+
+# practice arrange()
+
+drinks %>% arrange(-beer_servings) %>% slice(1:10)
+
+drinks %>% arrange(desc(beer_servings)) %>% top_n(10, beer_servings)
+
+
+```
+
+```{r Q1 (iv) b) untidy data}
+
+# practice mutate(), summarize()
+
+untidy_drinks <- drinks %>%
+                 select(country, beer_servings, spirit_servings, wine_servings) %>%
+                 filter(country %in% c("Belarus" , "France" , "Germany" , "Saudi Arabia" , "United Kingdom"))
+
+untidy_drinks
+
+```
+
+```{r Q1 (iv) b) tidy data}
+
+# old school function gather(), but many of you are familiar with this one.. 
+
+tidy_drinks <- untidy_drinks %>% 
+  gather(key="type", value = "servings", -country)
+
+tidy_drinks 
+
+
+# preferable function is pivot_longer, do not forget to check the order of the variables!
+
+
+tidy_drinks_pivot <-   pivot_longer(untidy_drinks, cols = c("beer_servings", "spirit_servings", "wine_servings"),  names_to = "type_servings", values_to = "Liters")
+
+tidy_drinks_pivot <- untidy_drinks %>% pivot_longer(cols = c("beer_servings", "wine_servings", "spirit_servings"), 
+                                                    names_to = "type_servings", 
+                                                    values_to = "Liters")
+
+tidy_drinks_pivot 
+```
+  
+```{r Q1 (iv) b) exhibit}
+
+ ggplot(tidy_drinks_pivot, aes(x=country, y=Liters, fill=type_servings)) +
+   geom_col(position="dodge") +
+   labs(x= "Country", y= "Number of servings",  title = "Alcohol Consumption in 5 countries",
+    caption = "Source: fivethirtyeight package", fill = " "
+  ) +
+  theme_bw() 
+```
